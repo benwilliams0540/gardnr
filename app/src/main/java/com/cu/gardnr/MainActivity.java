@@ -6,8 +6,13 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
 
 public class MainActivity extends AppCompatActivity {
+    ListView plantList;
+    ArrayAdapter plantAdapter;
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
@@ -21,6 +26,15 @@ public class MainActivity extends AppCompatActivity {
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        String[] test = {"Plant 1", "Plant 2"};
+
+        plantList = (ListView) findViewById(R.id.plantList);
+        plantAdapter = (new ArrayAdapter<String>(
+                this, R.layout.mylist,
+                R.id.Itemname,test));
+
+
     }
 
     public void launchSettings(MenuItem menu){
