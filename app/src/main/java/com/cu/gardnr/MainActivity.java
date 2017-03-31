@@ -6,12 +6,17 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
+import java.util.ArrayList;
+
 public class MainActivity extends AppCompatActivity {
+    ArrayList plantNames;
+    ArrayList plantLocations;
+    ArrayList plantImages;
+
     ListView plantList;
-    ArrayAdapter plantAdapter;
+    CustomListAdapter plantAdapter;
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -27,12 +32,18 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        String[] test = {"Plant 1", "Plant 2"};
+        loadDatabase();
 
+        plantAdapter = new CustomListAdapter(this, plantNames, plantImages);
         plantList = (ListView) findViewById(R.id.plantList);
-        plantAdapter = (new ArrayAdapter<String>(
-                this, R.layout.mylist,
-                R.id.Itemname,test));
+        plantList.setAdapter(plantAdapter);
+
+    }
+
+    public void loadDatabase(){
+        plantNames = new ArrayList<String>();
+        plantLocations = new ArrayList<String>();
+        plantImages = new ArrayList<Integer>();
 
 
     }
