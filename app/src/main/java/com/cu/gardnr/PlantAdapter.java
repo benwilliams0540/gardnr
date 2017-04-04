@@ -15,7 +15,6 @@ import java.util.List;
 
 public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHolder>{
     List<Plant> plants;
-    String imagePath;
 
     public static class PlantViewHolder extends RecyclerView.ViewHolder {
         CardView cv;
@@ -49,14 +48,22 @@ public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHol
     }
 
     @Override
-    public void onBindViewHolder(PlantViewHolder plantViewHolder, int i){
+    public void onBindViewHolder(PlantViewHolder plantViewHolder, final int i){
         plantViewHolder.plantName.setText(plants.get(i).getName());
         plantViewHolder.plantLocation.setText(plants.get(i).getLocation());
-        imagePath = plants.get(i).getImage();
+        String imagePath = plants.get(i).getImage();
         Handler customHandler = new Handler();
         Runnable scaleImage = createRunnable(plantViewHolder, imagePath);
         customHandler.postDelayed(scaleImage, 0);
+
+        plantViewHolder.cv.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                System.out.println(plants.get(i).getPID());
+            }
+        });
     }
+
 
     @Override
     public void onAttachedToRecyclerView(RecyclerView recyclerView) {
