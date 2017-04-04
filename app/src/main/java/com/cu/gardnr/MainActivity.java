@@ -4,7 +4,10 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -18,8 +21,8 @@ public class MainActivity extends AppCompatActivity {
     private String username;
     private ArrayList<Plant> plants;
 
-    private CustomListAdapter plantAdapter;
-    private ListView plantList;
+//    private CustomListAdapter plantAdapter;
+//    private ListView plantList;
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -41,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupDatabase(){
         plants = new ArrayList<Plant>();
+        Handler customHandler = new Handler();
 
         try {
             String sqlString = "CREATE TABLE IF NOT exists plants (pid INTEGER PRIMARY KEY, image VARCHAR, username VARCHAR, name VARCHAR, location VARCHAR, light VARCHAR, water VARCHAR)";
@@ -68,10 +72,27 @@ public class MainActivity extends AppCompatActivity {
 //        plants.add(new Plant(0, R.drawable.plant, "brw2", "Hydrangea", "Front porch", "Sunny", "Once a day"));
 //        plants.add(new Plant(1, R.drawable.plant, "brw2", "Tulip", "Back porch", "Sunny", "Once a day"));
 
-        plantAdapter = new CustomListAdapter(this, plants);
-        plantList = (ListView) findViewById(R.id.plantList);
-        plantList.setAdapter(plantAdapter);
+        customHandler.postDelayed(loadUI, 0);
     }
+
+//    private Runnable loadUI = new Runnable () {
+//        public void run() {
+//            plantAdapter = new CustomListAdapter(MainActivity.this, plants);
+//            plantList = (ListView) findViewById(R.id.plantList);
+//            plantList.setAdapter(plantAdapter);
+//        }
+//    };
+
+    private Runnable loadUI = new Runnable () {
+        public void run() {
+            RecyclerView rv = (RecyclerView) findViewById(R.id.rv);
+            LinearLayoutManager llm = new LinearLayoutManager(MainActivity.this);
+            PlantAdapter adapter = new PlantAdapter(plants);
+
+            rv.setLayoutManager(llm);
+            rv.setAdapter(adapter);
+        }
+    };
 
     public void launchCreatePlant(View view){
         Intent intent = new Intent(getBaseContext(), CreatePlantActivity.class);

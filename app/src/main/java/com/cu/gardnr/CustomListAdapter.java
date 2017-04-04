@@ -31,8 +31,6 @@ public class CustomListAdapter extends ArrayAdapter<Plant> {
 //        int targetH = imageView.getHeight();
         int targetW = 96;
         int targetH = 128;
-        Log.i("targetW", "" + targetW);
-        Log.i("targetH", "" + targetH);
 
         // Get the dimensions of the bitmap
         BitmapFactory.Options bmOptions = new BitmapFactory.Options();
@@ -40,8 +38,6 @@ public class CustomListAdapter extends ArrayAdapter<Plant> {
         BitmapFactory.decodeFile(imagePath, bmOptions);
         int photoW = bmOptions.outWidth;
         int photoH = bmOptions.outHeight;
-        Log.i("photoW", "" + photoW);
-        Log.i("photoH", "" + photoH);
         // Determine how much to scale down the image
 
         int scaleFactor = Math.min(photoW/targetW, photoH/targetH);

@@ -245,6 +245,9 @@ public class CreatePlantActivity extends AppCompatActivity {
         else if (light.length() < 1) {
             Toast.makeText(CreatePlantActivity.this, "Light cannot be empty", Toast.LENGTH_SHORT).show();
         }
+        else if (imagePath.equals("")){
+            Toast.makeText(CreatePlantActivity.this, "A photo of the plant must be set", Toast.LENGTH_SHORT).show();
+        }
         else {
             try {
                 String sqlString = "CREATE TABLE IF NOT exists plants (pid INTEGER PRIMARY KEY, image VARCHAR, username VARCHAR, name VARCHAR, location VARCHAR, light VARCHAR, water VARCHAR)";
