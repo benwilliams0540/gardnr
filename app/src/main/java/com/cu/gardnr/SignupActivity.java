@@ -1,5 +1,6 @@
 package com.cu.gardnr;
 
+import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -12,14 +13,14 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 
-public class LoginActivity extends AppCompatActivity {
-    private SQLiteDatabase db;
-    private ArrayList<User> users;
+public class SignupActivity extends AppCompatActivity {
+    SQLiteDatabase db;
+    ArrayList<User> users;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_login);
+        setContentView(R.layout.activity_signup);
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -48,29 +49,30 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
-    public void login(View view){
-        EditText usernameField = (EditText) findViewById(R.id.usernameField);
-        EditText passwordField = (EditText) findViewById(R.id.passwordField);
-        String username = usernameField.getText().toString();
-        String password = passwordField.getText().toString();
+    public void signup(View view){
+        EditText unField = (EditText) findViewById(R.id.unField);
+        EditText pwField = (EditText) findViewById(R.id.pwField);
+        EditText pw2Field = (EditText) findViewById(R.id.pw2Field);
+        String username = unField.getText().toString();
+        String password = pwField.getText().toString();
+        String confirm = pw2Field.getText().toString();
 
-        for (int i = 0; i < users.size(); i++) {
-            if (users.get(i).getUsername().equals(username)) {
-                if (users.get(i).checkPassword(password)) {
-                    Toast.makeText(LoginActivity.this, "Login successful", Toast.LENGTH_SHORT).show();
-                    Intent intent = new Intent(getBaseContext(), MainActivity.class);
-                    intent.putExtra("username", username);
-                    startActivity(intent);
-                }
+        if (!password.equals(confirm)){
+            Toast.makeText(SignupActivity.this, "Passwords must match", Toast.LENGTH_SHORT).show();
+        }
+        else {
+            ContentValues insertValues = new ContentValues();
+            insertValues.put("username", username);
+            insertValues.put("password", password);
+            try {
+                db.insertOrThrow("users", null, insertValues);
+                users.add(new User(username, password));
+                Intent intent = new Intent(getBaseContext(), MainActivity.class);
+                intent.putExtra("username", username);
+                startActivity(intent);
+            } catch (Exception e){
+                Toast.makeText(SignupActivity.this, "Username already taken", Toast.LENGTH_SHORT).show();
             }
         }
-        Toast.makeText(LoginActivity.this, "Username or password is incorrect - logging in anyways", Toast.LENGTH_SHORT).show();
-        Intent intent = new Intent(getBaseContext(), MainActivity.class);
-        intent.putExtra("username", "default");
-        startActivity(intent);
-    }
-
-    public void launchSignup(View view){
-        startActivity(new Intent(LoginActivity.this, SignupActivity.class));
     }
 }

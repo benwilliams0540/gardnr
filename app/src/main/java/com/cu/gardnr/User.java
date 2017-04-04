@@ -1,8 +1,8 @@
 package com.cu.gardnr;
 
 public class User {
-    String username;
-    String password;
+    private String username;
+    private String password;
 
     public User (String username, String password){
         this.username = username;
@@ -24,6 +24,7 @@ public class User {
     public void setUsername(String username) {
         this.username = username;
     }
+
     public String getPassword() {
         return password;
     }
