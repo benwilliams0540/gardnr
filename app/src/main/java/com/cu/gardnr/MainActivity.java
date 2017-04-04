@@ -12,7 +12,6 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ListView;
 
 import java.util.ArrayList;
 
@@ -20,9 +19,6 @@ public class MainActivity extends AppCompatActivity {
     SQLiteDatabase db;
     private String username;
     private ArrayList<Plant> plants;
-
-//    private CustomListAdapter plantAdapter;
-//    private ListView plantList;
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -69,19 +65,8 @@ public class MainActivity extends AppCompatActivity {
             c.moveToNext();
         }
 
-//        plants.add(new Plant(0, R.drawable.plant, "brw2", "Hydrangea", "Front porch", "Sunny", "Once a day"));
-//        plants.add(new Plant(1, R.drawable.plant, "brw2", "Tulip", "Back porch", "Sunny", "Once a day"));
-
         customHandler.postDelayed(loadUI, 0);
     }
-
-//    private Runnable loadUI = new Runnable () {
-//        public void run() {
-//            plantAdapter = new CustomListAdapter(MainActivity.this, plants);
-//            plantList = (ListView) findViewById(R.id.plantList);
-//            plantList.setAdapter(plantAdapter);
-//        }
-//    };
 
     private Runnable loadUI = new Runnable () {
         public void run() {

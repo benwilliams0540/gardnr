@@ -3,11 +3,9 @@ package com.cu.gardnr;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.media.Image;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -17,6 +15,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -24,17 +23,17 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.jar.Manifest;
 
 public class CreatePlantActivity extends AppCompatActivity {
     SQLiteDatabase db;
@@ -84,73 +83,102 @@ public class CreatePlantActivity extends AppCompatActivity {
         waterSpinner.setAdapter(waterAdapter);
     }
 
-    public void addPhoto(View view){
+    public void galleryPhoto(View view){
         if (Build.VERSION.SDK_INT < 23) {
-            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-            startActivityForResult(intent, 1);
+            Intent takePictureIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+            startActivityForResult(takePictureIntent, 1);
         }
         else {
-            if (checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            if (checkStoragePermissions()) {
+                Intent takePictureIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                startActivityForResult(takePictureIntent, 1);
+            }
+            else {
                 requestPermissions(new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
             }
+        }
+    }
+
+    public void cameraPhoto(View view){
+        if (Build.VERSION.SDK_INT < 23) {
+            saveCameraPhoto();
+        }
+        else {
+            if (checkCameraPermissions()){
+                saveCameraPhoto();
+            }
             else {
-                Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                startActivityForResult(intent, 1);
+                requestPermissions(new String[]{android.Manifest.permission.CAMERA}, 2);
             }
         }
     }
 
-    public void takePhoto(View view){
+    public boolean checkStoragePermissions(){
         if (Build.VERSION.SDK_INT < 23) {
-            savePhoto();
+            return true;
         }
         else {
             if (checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE}, 2);
+                return false;
             }
             else {
-                savePhoto();
+                return true;
             }
         }
     }
 
-    private void savePhoto(){
-        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+    public boolean checkCameraPermissions(){
         if (Build.VERSION.SDK_INT < 23) {
-            File photoFile = null;
-            try {
-                photoFile = createImageFile();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-            if (photoFile != null) {
-                Uri photoURI = FileProvider.getUriForFile(this,
-                        "com.cu.gardnr.fileprovider",
-                        photoFile);
-                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-                startActivityForResult(takePictureIntent, 2);
-            }
+            return true;
         }
         else {
             if (checkSelfPermission(android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{android.Manifest.permission.CAMERA}, 3);
+                return false;
             }
             else {
-                File photoFile = null;
-                try {
-                    photoFile = createImageFile();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                return true;
+            }
+        }
+    }
 
+    private void saveGalleryPhoto(Bitmap image) {
+        try {
+            File pictureFile = createImageFile();
+            FileOutputStream fos = new FileOutputStream(pictureFile);
+            image.compress(Bitmap.CompressFormat.PNG, 90, fos);
+            fos.close();
+        } catch (FileNotFoundException e) {
+            Log.d("", "File not found: " + e.getMessage());
+        } catch (IOException e) {
+            Log.d("", "Error accessing file: " + e.getMessage());
+        }
+    }
+
+    private void saveCameraPhoto(){
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        File photoFile = null;
+        if (Build.VERSION.SDK_INT < 23) {
+            try {
+                photoFile = createImageFile();
                 if (photoFile != null) {
-                    Uri photoURI = FileProvider.getUriForFile(this,
-                            "com.cu.gardnr.fileprovider",
-                            photoFile);
+                    Uri photoURI = Uri.fromFile(createImageFile());
                     takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
                     startActivityForResult(takePictureIntent, 2);
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        else {
+            try {
+                photoFile = createImageFile();
+                if (photoFile != null) {
+                    Uri photoURI = FileProvider.getUriForFile(this, "com.cu.gardnr.fileprovider", photoFile);
+                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                    startActivityForResult(takePictureIntent, 2);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }
@@ -175,32 +203,13 @@ public class CreatePlantActivity extends AppCompatActivity {
 
         if (requestCode == 1){
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                startActivityForResult(intent, 1);
+                Intent takePictureIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                startActivityForResult(takePictureIntent, 1);
             }
         }
         else if (requestCode == 2){
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                savePhoto();
-            }
-        }
-        else if (requestCode == 3){
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                File photoFile = null;
-                try {
-                    photoFile = createImageFile();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-
-                if (photoFile != null) {
-                    Uri photoURI = FileProvider.getUriForFile(this,
-                            "com.cu.gardnr.fileprovider",
-                            photoFile);
-                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-                    startActivityForResult(takePictureIntent, 2);
-                }
+                saveCameraPhoto();
             }
         }
     }
@@ -212,17 +221,16 @@ public class CreatePlantActivity extends AppCompatActivity {
 
         if (requestCode == 1 && resultCode == RESULT_OK && data != null){
             Uri selectedImage = data.getData();
+
             try {
                 Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), selectedImage);
                 plantImage.setImageBitmap(bitmap);
+                saveGalleryPhoto(bitmap);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
         else if (requestCode == 2 && resultCode == RESULT_OK && data != null) {
-//            Bundle extras = data.getExtras();
-//            Bitmap bitmap = (Bitmap) extras.get("data");
-//            plantImage.setImageBitmap(bitmap);
             Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
             plantImage.setImageBitmap(bitmap);
         }
