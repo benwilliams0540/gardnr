@@ -1,5 +1,6 @@
 package com.cu.gardnr;
 
+import android.animation.ValueAnimator;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Handler;
@@ -10,6 +11,8 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.LinearInterpolator;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -29,13 +32,23 @@ public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHol
         CardView cv;
         TextView plantName;
         TextView plantLocation;
+
+        TextView waterTag;
+        EditText plantWater;
+
         ImageView plantPhoto;
+        private int mOriginalHeight = 0;
+        private boolean mIsViewExpanded = false;
 
         PlantViewHolder(View itemView) {
             super(itemView);
             cv = (CardView) itemView.findViewById(R.id.cv);
             plantName = (TextView) itemView.findViewById(R.id.plant_name);
             plantLocation = (TextView) itemView.findViewById(R.id.plant_location);
+
+            waterTag = (TextView) itemView.findViewById(R.id.water_tag);
+            plantWater = (EditText) itemView.findViewById(R.id.plant_water);
+
             plantPhoto = (ImageView) itemView.findViewById(R.id.plant_photo);
         }
     }
@@ -53,9 +66,10 @@ public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHol
     }
 
     @Override
-    public void onBindViewHolder(PlantViewHolder plantViewHolder, final int i){
+    public void onBindViewHolder(final PlantViewHolder plantViewHolder, final int i){
         plantViewHolder.plantName.setText(plants.get(i).getName());
-        plantViewHolder.plantLocation.setText(plants.get(i).getLocation());
+        plantViewHolder.plantLocation.setText("Location: " + plants.get(i).getLocation());
+        plantViewHolder.plantWater.setText(plants.get(i).getWater());
         String imagePath = plants.get(i).getImage();
         Handler customHandler = new Handler();
         Runnable scaleImage = createImageRunnable(plantViewHolder, imagePath);
@@ -63,8 +77,42 @@ public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHol
 
         plantViewHolder.cv.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) {
-                System.out.println(plants.get(i).getPID());
+            public void onClick(final View v) {
+//                if (plantViewHolder.expandedView.getVisibility() == View.GONE) {
+//                    plantViewHolder.expandedView.setVisibility(View.VISIBLE);
+//                }
+//                else {
+//                    plantViewHolder.expandedView.setVisibility(View.GONE);
+//                }
+//                Log.i("Clicked", "" + plants.get(i).getPID());
+                if (plantViewHolder.mOriginalHeight == 0) {
+                    plantViewHolder.mOriginalHeight = v.getHeight();
+                }
+                ValueAnimator valueAnimator;
+                if (!plantViewHolder.mIsViewExpanded) {
+                    //plantViewHolder.expandedView.setVisibility(View.VISIBLE);
+                    plantViewHolder.waterTag.setVisibility(View.VISIBLE);
+                    plantViewHolder.plantWater.setVisibility(View.VISIBLE);
+                    plantViewHolder.mIsViewExpanded = true;
+                    valueAnimator = ValueAnimator.ofInt(plantViewHolder.mOriginalHeight, plantViewHolder.mOriginalHeight + (int) (plantViewHolder.mOriginalHeight * 1.5));
+                } else {
+                    //plantViewHolder.expandedView.setVisibility(View.GONE);
+                    plantViewHolder.waterTag.setVisibility(View.GONE);
+                    plantViewHolder.plantWater.setVisibility(View.GONE);
+                    plantViewHolder.mIsViewExpanded = false;
+                    valueAnimator = ValueAnimator.ofInt(plantViewHolder.mOriginalHeight + (int) (plantViewHolder.mOriginalHeight * 1.5), plantViewHolder.mOriginalHeight);
+                }
+                valueAnimator.setDuration(300);
+                valueAnimator.setInterpolator(new LinearInterpolator());
+                valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                    public void onAnimationUpdate(ValueAnimator animation) {
+                        Integer value = (Integer) animation.getAnimatedValue();
+                        v.getLayoutParams().height = value.intValue();
+                        v.requestLayout();
+                    }
+                });
+                valueAnimator.start();
+
             }
         });
     }
