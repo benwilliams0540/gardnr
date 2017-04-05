@@ -14,8 +14,8 @@ import android.widget.Toast;
 import java.util.ArrayList;
 
 public class SignupActivity extends AppCompatActivity {
-    SQLiteDatabase db;
-    ArrayList<User> users;
+    private static SQLiteDatabase db;
+    private static ArrayList<User> users;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

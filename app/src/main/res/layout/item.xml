@@ -7,6 +7,7 @@
     android:layout_height="100dp"
     android:layout_margin="5dp"
     android:clickable="true"
+    android:animateLayoutChanges="true"
     cardBackgroundColor="@android:color/white"
     cardCornerRadius="4dp"
     cardElevation="4dp">

@@ -48,6 +48,8 @@
                 android:layout_below="@+id/plant_name"
                 android:layout_toRightOf="@+id/plant_photo" />
 
+
+
         </RelativeLayout>
 
     </android.support.v7.widget.CardView>

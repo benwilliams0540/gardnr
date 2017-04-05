@@ -9,6 +9,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.support.v7.widget.helper.ItemTouchHelper;
+import android.util.Log;
+import android.view.DragEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -16,9 +19,15 @@ import android.view.View;
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
-    SQLiteDatabase db;
-    private String username;
-    private ArrayList<Plant> plants;
+    private static SQLiteDatabase db;
+    private static String username;
+    private static ArrayList<Plant> plants;
+
+    private static RecyclerView rv;
+    private static LinearLayoutManager llm;
+    private static PlantAdapter adapter;
+
+    private static Handler customHandler = new Handler();
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -40,7 +49,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupDatabase(){
         plants = new ArrayList<Plant>();
-        Handler customHandler = new Handler();
 
         try {
             String sqlString = "CREATE TABLE IF NOT exists plants (pid INTEGER PRIMARY KEY, image VARCHAR, username VARCHAR, name VARCHAR, location VARCHAR, light VARCHAR, water VARCHAR)";
@@ -65,17 +73,40 @@ public class MainActivity extends AppCompatActivity {
             c.moveToNext();
         }
 
-        customHandler.postDelayed(loadUI, 0);
+        customHandler.post(loadUI);
+    }
+
+    static public void removePlant(Plant plant){
+        Runnable undo = createDeleteRunnable(plant);
+        customHandler.postDelayed(undo, 3500);
+    }
+
+    static public void cancelRemove(){
+        customHandler.removeCallbacksAndMessages(null);
+    }
+
+    static private Runnable createDeleteRunnable(final Plant plant){
+        Runnable delete = new Runnable() {
+            public void run() {
+                Integer toRemove = plant.getPID();
+                db.delete("plants", "pid = ?", new String[] {toRemove.toString()});
+            }
+        };
+        return delete;
     }
 
     private Runnable loadUI = new Runnable () {
         public void run() {
-            RecyclerView rv = (RecyclerView) findViewById(R.id.rv);
-            LinearLayoutManager llm = new LinearLayoutManager(MainActivity.this);
-            PlantAdapter adapter = new PlantAdapter(plants);
+            rv = (RecyclerView) findViewById(R.id.rv);
+            llm = new LinearLayoutManager(MainActivity.this);
+            adapter = new PlantAdapter(plants);
 
             rv.setLayoutManager(llm);
             rv.setAdapter(adapter);
+
+            ItemTouchHelper.Callback callback = new PlantTouchHelper(adapter, MainActivity.this);
+            ItemTouchHelper helper = new ItemTouchHelper(callback);
+            helper.attachToRecyclerView(rv);
         }
     };
 

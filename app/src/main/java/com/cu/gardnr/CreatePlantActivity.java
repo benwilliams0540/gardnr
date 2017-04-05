@@ -66,6 +66,7 @@ public class CreatePlantActivity extends AppCompatActivity {
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 String item = parent.getItemAtPosition(position).toString();
                 Toast.makeText(parent.getContext(), "Selected: " + item, Toast.LENGTH_SHORT);
+                //if (position == )
             }
             @Override
             public void onNothingSelected(AdapterView<?> arg0){
@@ -145,7 +146,7 @@ public class CreatePlantActivity extends AppCompatActivity {
         try {
             File pictureFile = createImageFile();
             FileOutputStream fos = new FileOutputStream(pictureFile);
-            image.compress(Bitmap.CompressFormat.PNG, 90, fos);
+            image.compress(Bitmap.CompressFormat.JPEG, 90, fos);
             fos.close();
         } catch (FileNotFoundException e) {
             Log.d("", "File not found: " + e.getMessage());
@@ -188,9 +189,9 @@ public class CreatePlantActivity extends AppCompatActivity {
         String imageFileName = "JPEG_" + timeStamp + "_";
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
         File image = File.createTempFile(
-                imageFileName,  /* prefix */
-                ".jpg",         /* suffix */
-                storageDir      /* directory */
+                imageFileName,
+                ".jpg",
+                storageDir
         );
 
         imagePath = image.getAbsolutePath();
@@ -240,9 +241,11 @@ public class CreatePlantActivity extends AppCompatActivity {
         EditText nameText = (EditText) findViewById(R.id.nameText);
         EditText locationText = (EditText) findViewById(R.id.locationText);
         EditText lightText = (EditText) findViewById(R.id.lightText);
+        Spinner spinner = (Spinner) findViewById(R.id.waterSpinner);
         String name = nameText.getText().toString();
         String location = locationText.getText().toString();
         String light = lightText.getText().toString();
+        String frequency = spinner.getSelectedItem().toString();
 
         if (name.length() < 1) {
             Toast.makeText(CreatePlantActivity.this, "Name cannot be empty", Toast.LENGTH_SHORT).show();
@@ -271,7 +274,7 @@ public class CreatePlantActivity extends AppCompatActivity {
             insertValues.put("name", name);
             insertValues.put("location", location);
             insertValues.put("light", light);
-            insertValues.put("water", "1x a week");
+            insertValues.put("water", frequency);
 
             try {
                 db.insertOrThrow("plants", null, insertValues);

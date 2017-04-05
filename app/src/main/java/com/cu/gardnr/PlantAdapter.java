@@ -3,18 +3,27 @@ package com.cu.gardnr;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Handler;
+import android.support.design.widget.Snackbar;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHolder>{
     List<Plant> plants;
+    List<Plant> plantsToDelete = new ArrayList<Plant>();
+    RecyclerView recyclerView;
+
+    PlantAdapter(List<Plant> plants){
+        this.plants = plants;
+    }
 
     public static class PlantViewHolder extends RecyclerView.ViewHolder {
         CardView cv;
@@ -29,10 +38,6 @@ public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHol
             plantLocation = (TextView) itemView.findViewById(R.id.plant_location);
             plantPhoto = (ImageView) itemView.findViewById(R.id.plant_photo);
         }
-    }
-
-    PlantAdapter(List<Plant> plants){
-        this.plants = plants;
     }
 
     @Override
@@ -53,8 +58,8 @@ public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHol
         plantViewHolder.plantLocation.setText(plants.get(i).getLocation());
         String imagePath = plants.get(i).getImage();
         Handler customHandler = new Handler();
-        Runnable scaleImage = createRunnable(plantViewHolder, imagePath);
-        customHandler.postDelayed(scaleImage, 0);
+        Runnable scaleImage = createImageRunnable(plantViewHolder, imagePath);
+        customHandler.post(scaleImage);
 
         plantViewHolder.cv.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -64,13 +69,34 @@ public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHol
         });
     }
 
-
     @Override
     public void onAttachedToRecyclerView(RecyclerView recyclerView) {
+        this.recyclerView = recyclerView;
         super.onAttachedToRecyclerView(recyclerView);
     }
 
-    private Runnable createRunnable(final PlantViewHolder plantViewHolder, final String imagePath) {
+    public void onItemRemove(final RecyclerView.ViewHolder viewHolder) {
+        final int adapterPosition = viewHolder.getAdapterPosition();
+        final Plant plant = plants.get(adapterPosition);
+        Snackbar snackbar = Snackbar
+                .make(recyclerView, "PLANT REMOVED", Snackbar.LENGTH_LONG)
+                .setAction("UNDO", new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        Log.i("position", "" + adapterPosition);
+                        Handler customHandler = new Handler();
+                        Runnable undo = createUndoRunnable(plant, adapterPosition);
+                        customHandler.post(undo);
+                    }
+                });
+        snackbar.show();
+        MainActivity.removePlant(plant);
+        plants.remove(adapterPosition);
+        notifyItemRemoved(adapterPosition);
+        plantsToDelete.add(plant);
+    }
+
+    private Runnable createImageRunnable(final PlantViewHolder plantViewHolder, final String imagePath) {
         Runnable scaleImage = new Runnable() {
             public void run() {
                 int targetW = 200;
@@ -91,5 +117,18 @@ public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHol
             }
         };
         return scaleImage;
+    }
+
+    private Runnable createUndoRunnable(final Plant plant, final int position){
+        Runnable undo = new Runnable() {
+            public void run() {
+                MainActivity.cancelRemove();
+                plants.add(position, plant);
+                notifyItemInserted(position);
+                recyclerView.scrollToPosition(position);
+                plantsToDelete.remove(plant);
+            }
+        };
+        return undo;
     }
 }
