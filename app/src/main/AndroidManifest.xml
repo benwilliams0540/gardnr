@@ -24,6 +24,7 @@
         <activity android:name=".MainActivity"></activity>
         <activity android:name=".PlantActivity"></activity>
         <activity android:name=".CreatePlantActivity"></activity>
+        <receiver android:name=".AlarmReceiver"/>
 
         <provider
             android:name="android.support.v4.content.FileProvider"

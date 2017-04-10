@@ -84,37 +84,7 @@ public class CreatePlantActivity extends AppCompatActivity {
         waterSpinner.setAdapter(waterAdapter);
     }
 
-    public void galleryPhoto(View view){
-        if (Build.VERSION.SDK_INT < 23) {
-            Intent takePictureIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-            startActivityForResult(takePictureIntent, 1);
-        }
-        else {
-            if (checkStoragePermissions()) {
-                Intent takePictureIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                startActivityForResult(takePictureIntent, 1);
-            }
-            else {
-                requestPermissions(new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
-            }
-        }
-    }
-
-    public void cameraPhoto(View view){
-        if (Build.VERSION.SDK_INT < 23) {
-            saveCameraPhoto();
-        }
-        else {
-            if (checkCameraPermissions()){
-                saveCameraPhoto();
-            }
-            else {
-                requestPermissions(new String[]{android.Manifest.permission.CAMERA}, 2);
-            }
-        }
-    }
-
-    public boolean checkStoragePermissions(){
+    private boolean checkStoragePermissions(){
         if (Build.VERSION.SDK_INT < 23) {
             return true;
         }
@@ -128,7 +98,7 @@ public class CreatePlantActivity extends AppCompatActivity {
         }
     }
 
-    public boolean checkCameraPermissions(){
+    private boolean checkCameraPermissions(){
         if (Build.VERSION.SDK_INT < 23) {
             return true;
         }
@@ -234,6 +204,36 @@ public class CreatePlantActivity extends AppCompatActivity {
         else if (requestCode == 2 && resultCode == RESULT_OK && data != null) {
             Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
             plantImage.setImageBitmap(bitmap);
+        }
+    }
+
+    public void galleryPhoto(View view){
+        if (Build.VERSION.SDK_INT < 23) {
+            Intent takePictureIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+            startActivityForResult(takePictureIntent, 1);
+        }
+        else {
+            if (checkStoragePermissions()) {
+                Intent takePictureIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                startActivityForResult(takePictureIntent, 1);
+            }
+            else {
+                requestPermissions(new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
+            }
+        }
+    }
+
+    public void cameraPhoto(View view){
+        if (Build.VERSION.SDK_INT < 23) {
+            saveCameraPhoto();
+        }
+        else {
+            if (checkCameraPermissions()){
+                saveCameraPhoto();
+            }
+            else {
+                requestPermissions(new String[]{android.Manifest.permission.CAMERA}, 2);
+            }
         }
     }
 

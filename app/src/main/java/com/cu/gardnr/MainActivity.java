@@ -1,5 +1,8 @@
 package com.cu.gardnr;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -11,12 +14,12 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.Log;
-import android.view.DragEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
 import java.util.ArrayList;
+import java.util.GregorianCalendar;
 
 public class MainActivity extends AppCompatActivity {
     private static SQLiteDatabase db;
@@ -73,19 +76,56 @@ public class MainActivity extends AppCompatActivity {
             c.moveToNext();
         }
 
+        setupUI();
+        setupReminders();
+    }
+
+    private void setupUI(){
+        rv = (RecyclerView) findViewById(R.id.rv);
+        llm = new LinearLayoutManager(MainActivity.this);
+
+        ItemTouchHelper.Callback callback = new PlantTouchHelper(adapter, MainActivity.this);
+        ItemTouchHelper helper = new ItemTouchHelper(callback);
+        helper.attachToRecyclerView(rv);
+
+        Runnable loadUI = createLoadThread();
         customHandler.post(loadUI);
     }
 
+    private void setupReminders(){
+        Intent intentAlarm = new Intent(this, AlarmReceiver.class);
+        Long time = new GregorianCalendar().getTimeInMillis() + 15000;
+        Log.i("set time", "" + time);
+
+        // create the object
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+
+        //set the alarm for particular time
+        alarmManager.set(AlarmManager.RTC_WAKEUP, time, PendingIntent.getBroadcast(this, 1, intentAlarm, PendingIntent.FLAG_UPDATE_CURRENT));
+    }
+
     static public void removePlant(Plant plant){
-        Runnable undo = createDeleteRunnable(plant);
-        customHandler.postDelayed(undo, 3500);
+        Runnable undo = createDeleteThread(plant);
+        customHandler.postDelayed(undo, 4000);
     }
 
     static public void cancelRemove(){
         customHandler.removeCallbacksAndMessages(null);
     }
 
-    static private Runnable createDeleteRunnable(final Plant plant){
+    static private Runnable createLoadThread() {
+        Runnable loadUI = new Runnable() {
+            public void run() {
+                adapter = new PlantAdapter(plants);
+
+                rv.setLayoutManager(llm);
+                rv.setAdapter(adapter);
+            }
+        };
+        return loadUI;
+    }
+
+    static private Runnable createDeleteThread(final Plant plant){
         Runnable delete = new Runnable() {
             public void run() {
                 Integer toRemove = plant.getPID();
@@ -94,21 +134,6 @@ public class MainActivity extends AppCompatActivity {
         };
         return delete;
     }
-
-    private Runnable loadUI = new Runnable () {
-        public void run() {
-            rv = (RecyclerView) findViewById(R.id.rv);
-            llm = new LinearLayoutManager(MainActivity.this);
-            adapter = new PlantAdapter(plants);
-
-            rv.setLayoutManager(llm);
-            rv.setAdapter(adapter);
-
-            ItemTouchHelper.Callback callback = new PlantTouchHelper(adapter, MainActivity.this);
-            ItemTouchHelper helper = new ItemTouchHelper(callback);
-            helper.attachToRecyclerView(rv);
-        }
-    };
 
     public void launchCreatePlant(View view){
         Intent intent = new Intent(getBaseContext(), CreatePlantActivity.class);
