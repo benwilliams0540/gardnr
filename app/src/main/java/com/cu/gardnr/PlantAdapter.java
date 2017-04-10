@@ -1,5 +1,6 @@
 package com.cu.gardnr;
 
+import android.animation.ValueAnimator;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Handler;
@@ -10,6 +11,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.LinearInterpolator;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -35,8 +37,8 @@ public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHol
         EditText plantWater;
 
         ImageView plantPhoto;
-        private int mOriginalHeight = 0;
-        private boolean mIsViewExpanded = false;
+//        private int mOriginalHeight = 0;
+//        private boolean mIsViewExpanded = false;
 
         PlantViewHolder(View itemView) {
             super(itemView);
@@ -76,13 +78,13 @@ public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHol
         plantViewHolder.cv.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(final View v) {
-//                if (plantViewHolder.expandedView.getVisibility() == View.GONE) {
-//                    plantViewHolder.expandedView.setVisibility(View.VISIBLE);
-//                }
-//                else {
-//                    plantViewHolder.expandedView.setVisibility(View.GONE);
-//                }
-//                Log.i("Clicked", "" + plants.get(i).getPID());
+////                if (plantViewHolder.expandedView.getVisibility() == View.GONE) {
+////                    plantViewHolder.expandedView.setVisibility(View.VISIBLE);
+////                }
+////                else {
+////                    plantViewHolder.expandedView.setVisibility(View.GONE);
+////                }
+////                Log.i("Clicked", "" + plants.get(i).getPID());
 //                if (plantViewHolder.mOriginalHeight == 0) {
 //                    plantViewHolder.mOriginalHeight = v.getHeight();
 //                }
