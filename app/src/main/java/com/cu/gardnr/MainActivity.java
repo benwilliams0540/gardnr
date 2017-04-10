@@ -1,10 +1,13 @@
 package com.cu.gardnr;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -39,17 +42,16 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         username = getIntent().getStringExtra("username");
+        SharedPreferences preferences = this.getSharedPreferences("com.cu.gardnr", Context.MODE_PRIVATE);
+        preferences.edit().putString("username", username).apply();
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         setupDatabase();
-        rv = (RecyclerView) findViewById(R.id.rv);
-        llm = new LinearLayoutManager(MainActivity.this);
-        adapter = new PlantAdapter(plants);
-
-        rv.setLayoutManager(llm);
+        setupUI();
     }
 
     private void setupDatabase(){
@@ -79,6 +81,21 @@ public class MainActivity extends AppCompatActivity {
         }
 
         customHandler.post(loadUI);
+    }
+
+    private void setupUI(){
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.addPlantButton);
+        rv = (RecyclerView) findViewById(R.id.rv);
+        llm = new LinearLayoutManager(MainActivity.this);
+        adapter = new PlantAdapter(plants);
+
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                launchCreatePlant();
+            }
+        });
+        rv.setLayoutManager(llm);
     }
 
     static public void removePlant(Plant plant){
@@ -115,7 +132,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    public void launchCreatePlant(View view){
+    public void launchCreatePlant(){
         Intent intent = new Intent(getBaseContext(), CreatePlantActivity.class);
         intent.putExtra("username", username);
         startActivity(intent);
