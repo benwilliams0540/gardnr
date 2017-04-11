@@ -1,30 +1,58 @@
 package com.cu.gardnr;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
 import java.util.ArrayList;
 
+import uk.co.deanwild.materialshowcaseview.MaterialShowcaseSequence;
+import uk.co.deanwild.materialshowcaseview.MaterialShowcaseView;
+
 public class LoginActivity extends AppCompatActivity {
+    private Toolbar toolbar;
+    private SharedPreferences preferences;
     private SQLiteDatabase db;
     private ArrayList<User> users;
+
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_login, menu);
+        return true;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         setupDatabase();
+    }
+
+    @Override
+    protected void onPostCreate(Bundle savedInstanceState){
+        super.onPostCreate(savedInstanceState);
+
+        preferences = this.getSharedPreferences("com.cu.gardnr", Context.MODE_PRIVATE);
+        if (preferences.getBoolean("firstRun", true)){
+            Handler customHandler = new Handler();
+            customHandler.postDelayed(firstTutorial, 1000);
+        }
     }
 
     private void setupDatabase(){
@@ -68,6 +96,48 @@ public class LoginActivity extends AppCompatActivity {
         Intent intent = new Intent(getBaseContext(), MainActivity.class);
         intent.putExtra("username", "default");
         startActivity(intent);
+    }
+
+    private Runnable firstTutorial = new Runnable () {
+        public void run() {
+            launchTutorial(null);
+        }
+    };
+
+    public void launchTutorial(MenuItem menu){
+        MaterialShowcaseSequence sequence = new MaterialShowcaseSequence(this);
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
+                        .setTarget(findViewById(R.id.signupButton))
+                        .setDismissText("GOT IT")
+                        .setContentText("To create a profile, select the 'SIGN UP' button")
+                        .withRectangleShape()
+                        .setDelay(250)
+                        .build()
+        );
+
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
+                        .setTarget(findViewById(R.id.informationLayout))
+                        .setDismissText("GOT IT")
+                        .setContentText("If you already have a profile, you can enter your information here and select 'LOGIN'")
+                        .withRectangleShape()
+                        .setDelay(250)
+                        .build()
+        );
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
+                        .setTarget(toolbar.getChildAt(1))
+                        .setDismissText("GOT IT")
+                        .setContentText("If you need to view a tutorial again, simply select the help icon at any time")
+                        .withRectangleShape()
+                        .setDelay(250)
+                        .build()
+        );
+        sequence.start();
     }
 
     public void launchSignup(View view){

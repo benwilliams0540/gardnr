@@ -7,10 +7,12 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -23,6 +25,9 @@ import android.view.View;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+
+import uk.co.deanwild.materialshowcaseview.MaterialShowcaseSequence;
+import uk.co.deanwild.materialshowcaseview.MaterialShowcaseView;
 
 public class MainActivity extends AppCompatActivity {
     SharedPreferences preferences;
@@ -56,6 +61,17 @@ public class MainActivity extends AppCompatActivity {
         setupDatabase();
         setupUI();
         setupReminders();
+    }
+
+    @Override
+    protected void onPostCreate(Bundle savedInstanceState){
+        super.onPostCreate(savedInstanceState);
+
+        preferences = this.getSharedPreferences("com.cu.gardnr", Context.MODE_PRIVATE);
+        if (preferences.getBoolean("firstRun", true)){
+            Handler customHandler = new Handler();
+            customHandler.postDelayed(firstTutorial, 1000);
+        }
     }
 
     @Override
@@ -125,48 +141,67 @@ public class MainActivity extends AppCompatActivity {
         intentAlarm3.putExtra("reminder", 3);
         intentAlarm3.putExtra("username", username);
 
+        alarmManager.cancel(PendingIntent.getBroadcast(this, 1, intentAlarm1, PendingIntent.FLAG_CANCEL_CURRENT));
+        alarmManager.cancel(PendingIntent.getBroadcast(this, 2, intentAlarm2, PendingIntent.FLAG_CANCEL_CURRENT));
+        alarmManager.cancel(PendingIntent.getBroadcast(this, 3, intentAlarm3, PendingIntent.FLAG_CANCEL_CURRENT));
+        Log.i("Reminders", "cancelled");
+
         if (preferences.getBoolean("reminderStatus", true)) {
+            Long time = new GregorianCalendar().getTimeInMillis();
+            Long original;
             Log.i("Reminders", "set");
             Calendar firstReminder = Calendar.getInstance();
             firstReminder.set(Calendar.DAY_OF_WEEK, getDay(1));
             firstReminder.set(Calendar.HOUR_OF_DAY, getHour(1));
             firstReminder.set(Calendar.MINUTE, 0);
             firstReminder.set(Calendar.SECOND, 0);
-
+            original = firstReminder.getTimeInMillis();
             Log.i("First", "" + firstReminder.getTimeInMillis());
+            if ((original - time) < 0){
+                firstReminder.setTimeInMillis(original+(7 * 24 * 60 * 60 * 1000));
+                Log.i("First adj.", "" + firstReminder.getTimeInMillis());
+            }
 
             Calendar secondReminder = Calendar.getInstance();
             secondReminder.set(Calendar.DAY_OF_WEEK, getDay(2));
             secondReminder.set(Calendar.HOUR_OF_DAY, getHour(2));
             secondReminder.set(Calendar.MINUTE, 0);
             secondReminder.set(Calendar.SECOND, 0);
+            original = secondReminder.getTimeInMillis();
             Log.i("Second", "" + secondReminder.getTimeInMillis());
+            if ((original - time) < 0){
+                secondReminder.setTimeInMillis(original+(7 * 24 * 60 * 60 * 1000));
+                Log.i("Second adj.", "" + secondReminder.getTimeInMillis());
+            }
 
             Calendar thirdReminder = Calendar.getInstance();
             thirdReminder.set(Calendar.DAY_OF_WEEK, getDay(3));
             thirdReminder.set(Calendar.HOUR_OF_DAY, getHour(3));
             thirdReminder.set(Calendar.MINUTE, 0);
             thirdReminder.set(Calendar.SECOND, 0);
+            original = firstReminder.getTimeInMillis();
             Log.i("Third", "" + thirdReminder.getTimeInMillis());
+            if ((original - time) < 0){
+                thirdReminder.setTimeInMillis(original+(7 * 24 * 60 * 60 * 1000));
+                Log.i("Third adj.", "" + thirdReminder.getTimeInMillis());
+            }
 
-            Long time = new GregorianCalendar().getTimeInMillis();
+
             Log.i("Current", "" + time);
-            Log.i("First diff", "" + (time - firstReminder.getTimeInMillis()));
-            Log.i("Second diff", "" + (time - secondReminder.getTimeInMillis()));
-            Log.i("Third diff", "" + (time - thirdReminder.getTimeInMillis()));
+            Log.i("First diff", "" + (firstReminder.getTimeInMillis() - time));
+            Log.i("Second diff", "" + (secondReminder.getTimeInMillis() - time));
+            Log.i("Third diff", "" + (thirdReminder.getTimeInMillis() - time));
 
-            alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, firstReminder.getTimeInMillis(), 24*60*60*1000, PendingIntent.getBroadcast(this, 1, intentAlarm1, PendingIntent.FLAG_UPDATE_CURRENT));
-            alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, secondReminder.getTimeInMillis(), 24*60*60*1000, PendingIntent.getBroadcast(this, 1, intentAlarm2, PendingIntent.FLAG_UPDATE_CURRENT));
-            alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, thirdReminder.getTimeInMillis(), 24*60*60*1000, PendingIntent.getBroadcast(this, 1, intentAlarm3, PendingIntent.FLAG_UPDATE_CURRENT));
-//            alarmManager.set(AlarmManager.RTC_WAKEUP, firstReminder.getTimeInMillis(), PendingIntent.getBroadcast(this, 1, intentAlarm1, PendingIntent.FLAG_UPDATE_CURRENT));
-//            alarmManager.set(AlarmManager.RTC_WAKEUP, secondReminder.getTimeInMillis(), PendingIntent.getBroadcast(this, 2, intentAlarm2, PendingIntent.FLAG_UPDATE_CURRENT));
-//            alarmManager.set(AlarmManager.RTC_WAKEUP, thirdReminder.getTimeInMillis(), PendingIntent.getBroadcast(this, 3, intentAlarm3, PendingIntent.FLAG_UPDATE_CURRENT));
-        }
-        else {
-            Log.i("Reminders", "cancelled");
-            alarmManager.cancel(PendingIntent.getBroadcast(this, 1, intentAlarm1, PendingIntent.FLAG_UPDATE_CURRENT));
-            alarmManager.cancel(PendingIntent.getBroadcast(this, 2, intentAlarm2, PendingIntent.FLAG_UPDATE_CURRENT));
-            alarmManager.cancel(PendingIntent.getBroadcast(this, 3, intentAlarm3, PendingIntent.FLAG_UPDATE_CURRENT));
+            if (Build.VERSION.SDK_INT >= 19) {
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, firstReminder.getTimeInMillis(), PendingIntent.getBroadcast(this, 1, intentAlarm1, PendingIntent.FLAG_CANCEL_CURRENT));
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, secondReminder.getTimeInMillis(), PendingIntent.getBroadcast(this, 2, intentAlarm2, PendingIntent.FLAG_CANCEL_CURRENT));
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, thirdReminder.getTimeInMillis(), PendingIntent.getBroadcast(this, 3, intentAlarm3, PendingIntent.FLAG_CANCEL_CURRENT));
+            }
+            else {
+                alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, firstReminder.getTimeInMillis(), 24 * 60 * 60 * 1000, PendingIntent.getBroadcast(this, 1, intentAlarm1, PendingIntent.FLAG_CANCEL_CURRENT));
+                alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, secondReminder.getTimeInMillis(), 24 * 60 * 60 * 1000, PendingIntent.getBroadcast(this, 2, intentAlarm2, PendingIntent.FLAG_CANCEL_CURRENT));
+                alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, thirdReminder.getTimeInMillis(), 24 * 60 * 60 * 1000, PendingIntent.getBroadcast(this, 3, intentAlarm3, PendingIntent.FLAG_CANCEL_CURRENT));
+            }
         }
     }
 
@@ -302,10 +337,49 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private Runnable firstTutorial = new Runnable () {
+        public void run() {
+            launchTutorial(null);
+        }
+    };
+
     public void launchCreatePlant(){
         Intent intent = new Intent(getBaseContext(), AddPlantActivity.class);
         intent.putExtra("username", username);
         startActivity(intent);
+    }
+    public void launchTutorial(MenuItem menu){
+        MaterialShowcaseSequence sequence = new MaterialShowcaseSequence(this);
+        final MaterialShowcaseView addPlant = new MaterialShowcaseView.Builder(this)
+                .setTarget(findViewById(R.id.addPlantButton))
+                .setDismissText("GOT IT")
+                .setContentText("To add a plant to your garden, select the add button here")
+                .setDelay(250)
+                .build();
+        sequence.addSequenceItem(addPlant);
+        final CardView cardExample = (CardView) findViewById(R.id.card_example);
+        final MaterialShowcaseView plantView = new MaterialShowcaseView.Builder(this)
+                .setTarget(cardExample)
+                .setDismissText("GOT IT")
+                .setContentText("As you add plants, they will appear here. Selecting one will show you a detailed view of that plant")
+                .withRectangleShape()
+                .setDelay(250)
+                .build();
+        sequence.addSequenceItem(plantView);
+        sequence.setOnItemDismissedListener(new MaterialShowcaseSequence.OnSequenceItemDismissedListener() {
+            @Override
+            public void onDismiss(MaterialShowcaseView materialShowcaseView, int i) {
+                if (materialShowcaseView.equals(addPlant)){
+                    if (preferences.getBoolean("firstRun", true)){
+                        cardExample.setVisibility(View.VISIBLE);
+                    }
+                }
+                if (materialShowcaseView.equals(plantView)){
+                    cardExample.setVisibility(View.GONE);
+                }
+            }
+        });
+        sequence.start();
     }
     public void launchSettings(MenuItem menu){
         startActivity(new Intent(MainActivity.this, SettingsActivity.class));

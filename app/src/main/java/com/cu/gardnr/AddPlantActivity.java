@@ -1,8 +1,10 @@
 package com.cu.gardnr;
 
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
@@ -11,6 +13,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
@@ -26,6 +29,7 @@ import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.Toast;
 
@@ -36,7 +40,11 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import uk.co.deanwild.materialshowcaseview.MaterialShowcaseSequence;
+import uk.co.deanwild.materialshowcaseview.MaterialShowcaseView;
+
 public class AddPlantActivity extends AppCompatActivity {
+    private SharedPreferences preferences;
     private SQLiteDatabase db;
     private String username;
     private String imagePath;
@@ -87,6 +95,18 @@ public class AddPlantActivity extends AppCompatActivity {
 
         imagePath = "";
         setupUI();
+    }
+
+    @Override
+    protected void onPostCreate(Bundle savedInstanceState){
+        super.onPostCreate(savedInstanceState);
+
+        preferences = this.getSharedPreferences("com.cu.gardnr", Context.MODE_PRIVATE);
+        if (preferences.getBoolean("firstRun", true)){
+            Handler customHandler = new Handler();
+            customHandler.postDelayed(firstTutorial, 1000);
+            preferences.edit().putBoolean("firstRun", false).apply();
+        }
     }
 
     private void setupUI(){
@@ -273,6 +293,76 @@ public class AddPlantActivity extends AppCompatActivity {
         }
     }
 
+    private Runnable firstTutorial = new Runnable () {
+        public void run() {
+            launchTutorial(null);
+        }
+    };
+
+    public void launchTutorial(MenuItem menu){
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        LinearLayout nameLayout = (LinearLayout) findViewById(R.id.nameLayout);
+        LinearLayout locationLayout = (LinearLayout) findViewById(R.id.locationLayout);
+        LinearLayout lightLayout = (LinearLayout) findViewById(R.id.lightLayout);
+        LinearLayout waterLayout = (LinearLayout) findViewById(R.id.waterLayout);
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.cameraButton);
+
+        MaterialShowcaseSequence sequence = new MaterialShowcaseSequence(this);
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setTarget(nameLayout)
+                        .setDismissText("GOT IT")
+                        .setContentText("Set the plant name here (e.g. 'Hydrangea')")
+                        .withRectangleShape()
+                        .setDelay(250)
+                        .build()
+        );
+
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setTarget(locationLayout)
+                        .setDismissText("GOT IT")
+                        .setContentText("Set the plant's physical location here (e.g. 'Front porch')")
+                        .withRectangleShape()
+                        .setDelay(250)
+                        .build()
+        );
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setTarget(lightLayout)
+                        .setDismissText("GOT IT")
+                        .setContentText("Enter the plant's light requirements here (e.g. 'Moderate shade')")
+                        .withRectangleShape()
+                        .setDelay(250)
+                        .build()
+        );
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setTarget(waterLayout)
+                        .setDismissText("GOT IT")
+                        .setContentText("Enter the plant's watering frequency here")
+                        .withRectangleShape()
+                        .setDelay(250)
+                        .build()
+        );
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setTarget(fab)
+                        .setDismissText("GOT IT")
+                        .setContentText("Select a photo for the plant from either the gallery or camera here")
+                        .setDelay(250)
+                        .build()
+        );
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setTarget(toolbar.getChildAt(2))
+                        .setDismissText("GOT IT")
+                        .setContentText("When you are finished entering the plant's information, select the check mark to add it to your garden!")
+                        .setDelay(250)
+                        .build()
+        );
+        sequence.start();
+    }
     public void createPlant(MenuItem menu){
         EditText nameEditText = (EditText) findViewById(R.id.nameEditText);
         EditText locationEditText = (EditText) findViewById(R.id.locationEditText);

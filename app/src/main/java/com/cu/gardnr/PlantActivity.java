@@ -75,7 +75,7 @@ public class PlantActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_update, menu);
+        getMenuInflater().inflate(R.menu.menu_add, menu);
         return true;
     }
 

@@ -55,6 +55,7 @@
                         android:orientation="vertical">
 
                         <LinearLayout
+                            android:id="@+id/nameLayout"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="horizontal">
@@ -80,6 +81,7 @@
                         </LinearLayout>
 
                         <LinearLayout
+                            android:id="@+id/locationLayout"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginRight="8dp"
@@ -106,6 +108,7 @@
                         </LinearLayout>
 
                         <LinearLayout
+                            android:id="@+id/lightLayout"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="horizontal">
@@ -131,6 +134,7 @@
                         </LinearLayout>
 
                         <LinearLayout
+                            android:id="@+id/waterLayout"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="horizontal">
@@ -153,6 +157,7 @@
                         </LinearLayout>
 
                         <LinearLayout
+                            android:id="@+id/reminderLayout"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"

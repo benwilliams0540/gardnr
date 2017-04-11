@@ -22,23 +22,30 @@
             android:layout_centerInParent="true"
             android:orientation="vertical">
 
-            <EditText
-                android:id="@+id/usernameField"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:ems="10"
-                android:hint="Username"
-                android:inputType="textPersonName"
-                android:textAlignment="textStart" />
+            <LinearLayout
+                android:id="@+id/informationLayout"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
 
-            <EditText
-                android:id="@+id/passwordField"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:ems="10"
-                android:hint="Password"
-                android:inputType="textPassword"
-                android:textAlignment="textStart" />
+                <EditText
+                    android:id="@+id/usernameField"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ems="10"
+                    android:hint="Username"
+                    android:inputType="textPersonName"
+                    android:textAlignment="textStart" />
+
+                <EditText
+                    android:id="@+id/passwordField"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ems="10"
+                    android:hint="Password"
+                    android:inputType="textPassword"
+                    android:textAlignment="textStart" />
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
