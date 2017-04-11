@@ -28,6 +28,7 @@ import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.Toast;
 
@@ -37,6 +38,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
+import uk.co.deanwild.materialshowcaseview.MaterialShowcaseSequence;
+import uk.co.deanwild.materialshowcaseview.MaterialShowcaseView;
 
 public class PlantActivity extends AppCompatActivity {
     private Integer pid;
@@ -56,7 +60,7 @@ public class PlantActivity extends AppCompatActivity {
                         .setIcon(R.drawable.ic_delete)
                         .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
-
+                                return;
                             }
                         })
                         .setPositiveButton("Discard", new DialogInterface.OnClickListener() {
@@ -71,6 +75,25 @@ public class PlantActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onBackPressed() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(PlantActivity.this);
+        builder.setTitle("Are you sure you want to discard these changes?")
+                .setIcon(R.drawable.ic_delete)
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        return;
+                    }
+                })
+                .setPositiveButton("Discard", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        PlantActivity.super.onBackPressed();
+                    }
+                });
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
     @Override
@@ -91,7 +114,6 @@ public class PlantActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setHomeButtonEnabled(true);
-
 
         customHandler.post(loadPlant);
     }
@@ -331,7 +353,77 @@ public class PlantActivity extends AppCompatActivity {
         }
     }
 
-    public void updatePlant(MenuItem menu) {
+    public void launchTutorial(MenuItem menu){
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        LinearLayout nameLayout = (LinearLayout) findViewById(R.id.nameLayout);
+        LinearLayout locationLayout = (LinearLayout) findViewById(R.id.locationLayout);
+        LinearLayout lightLayout = (LinearLayout) findViewById(R.id.lightLayout);
+        LinearLayout waterLayout = (LinearLayout) findViewById(R.id.waterLayout);
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.cameraButton);
+
+        MaterialShowcaseSequence sequence = new MaterialShowcaseSequence(this);
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
+                        .setTarget(nameLayout)
+                        .setDismissText("GOT IT")
+                        .setContentText("Set the plant name here (e.g. 'Hydrangea')")
+                        .withRectangleShape()
+                        .setDelay(250)
+                        .build()
+        );
+
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
+                        .setTarget(locationLayout)
+                        .setDismissText("GOT IT")
+                        .setContentText("Set the plant's physical location here (e.g. 'Front porch')")
+                        .withRectangleShape()
+                        .setDelay(250)
+                        .build()
+        );
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
+                        .setTarget(lightLayout)
+                        .setDismissText("GOT IT")
+                        .setContentText("Enter the plant's light requirements here (e.g. 'Moderate shade')")
+                        .withRectangleShape()
+                        .setDelay(250)
+                        .build()
+        );
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
+                        .setTarget(waterLayout)
+                        .setDismissText("GOT IT")
+                        .setContentText("Enter the plant's watering frequency here")
+                        .withRectangleShape()
+                        .setDelay(250)
+                        .build()
+        );
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
+                        .setTarget(fab)
+                        .setDismissText("GOT IT")
+                        .setContentText("Select a photo for the plant from either the gallery or camera here")
+                        .setDelay(250)
+                        .build()
+        );
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
+                        .setTarget(toolbar.getChildAt(2))
+                        .setDismissText("GOT IT")
+                        .setContentText("When you are finished entering the plant's information, select the check mark to add it to your garden!")
+                        .setDelay(250)
+                        .build()
+        );
+        sequence.start();
+    }
+    public void createPlant(MenuItem menu) {
         EditText nameEditText = (EditText) findViewById(R.id.nameEditText);
         EditText locationEditText = (EditText) findViewById(R.id.locationEditText);
         EditText lightEditText = (EditText) findViewById(R.id.lightEditText);

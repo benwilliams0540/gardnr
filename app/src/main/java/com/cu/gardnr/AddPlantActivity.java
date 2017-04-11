@@ -54,12 +54,11 @@ public class AddPlantActivity extends AppCompatActivity {
         switch (item.getItemId()) {
             case android.R.id.home:
                 AlertDialog.Builder builder = new AlertDialog.Builder(AddPlantActivity.this);
-
                 builder.setTitle("Are you sure you want to discard this draft?")
                         .setIcon(R.drawable.ic_delete)
                         .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
-
+                                return;
                             }
                         })
                         .setPositiveButton("Discard", new DialogInterface.OnClickListener() {
@@ -74,6 +73,25 @@ public class AddPlantActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onBackPressed() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(AddPlantActivity.this);
+        builder.setTitle("Are you sure you want to discard this draft?")
+                .setIcon(R.drawable.ic_delete)
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        return;
+                    }
+                })
+                .setPositiveButton("Discard", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        AddPlantActivity.super.onBackPressed();
+                    }
+                });
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
     @Override
@@ -310,6 +328,7 @@ public class AddPlantActivity extends AppCompatActivity {
         MaterialShowcaseSequence sequence = new MaterialShowcaseSequence(this);
         sequence.addSequenceItem(
                 new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
                         .setTarget(nameLayout)
                         .setDismissText("GOT IT")
                         .setContentText("Set the plant name here (e.g. 'Hydrangea')")
@@ -320,6 +339,7 @@ public class AddPlantActivity extends AppCompatActivity {
 
         sequence.addSequenceItem(
                 new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
                         .setTarget(locationLayout)
                         .setDismissText("GOT IT")
                         .setContentText("Set the plant's physical location here (e.g. 'Front porch')")
@@ -329,6 +349,7 @@ public class AddPlantActivity extends AppCompatActivity {
         );
         sequence.addSequenceItem(
                 new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
                         .setTarget(lightLayout)
                         .setDismissText("GOT IT")
                         .setContentText("Enter the plant's light requirements here (e.g. 'Moderate shade')")
@@ -338,6 +359,7 @@ public class AddPlantActivity extends AppCompatActivity {
         );
         sequence.addSequenceItem(
                 new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
                         .setTarget(waterLayout)
                         .setDismissText("GOT IT")
                         .setContentText("Enter the plant's watering frequency here")
@@ -347,6 +369,7 @@ public class AddPlantActivity extends AppCompatActivity {
         );
         sequence.addSequenceItem(
                 new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
                         .setTarget(fab)
                         .setDismissText("GOT IT")
                         .setContentText("Select a photo for the plant from either the gallery or camera here")
@@ -355,6 +378,7 @@ public class AddPlantActivity extends AppCompatActivity {
         );
         sequence.addSequenceItem(
                 new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
                         .setTarget(toolbar.getChildAt(2))
                         .setDismissText("GOT IT")
                         .setContentText("When you are finished entering the plant's information, select the check mark to add it to your garden!")

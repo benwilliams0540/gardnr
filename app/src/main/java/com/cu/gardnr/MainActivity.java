@@ -48,6 +48,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    public void onBackPressed() {
+        finish();
+        Intent intent = new Intent(getBaseContext(), LoginActivity.class);
+        startActivity(intent);
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -179,7 +186,7 @@ public class MainActivity extends AppCompatActivity {
             thirdReminder.set(Calendar.HOUR_OF_DAY, getHour(3));
             thirdReminder.set(Calendar.MINUTE, 0);
             thirdReminder.set(Calendar.SECOND, 0);
-            original = firstReminder.getTimeInMillis();
+            original = thirdReminder.getTimeInMillis();
             Log.i("Third", "" + thirdReminder.getTimeInMillis());
             if ((original - time) < 0){
                 thirdReminder.setTimeInMillis(original+(7 * 24 * 60 * 60 * 1000));
@@ -198,9 +205,9 @@ public class MainActivity extends AppCompatActivity {
                 alarmManager.setExact(AlarmManager.RTC_WAKEUP, thirdReminder.getTimeInMillis(), PendingIntent.getBroadcast(this, 3, intentAlarm3, PendingIntent.FLAG_CANCEL_CURRENT));
             }
             else {
-                alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, firstReminder.getTimeInMillis(), 24 * 60 * 60 * 1000, PendingIntent.getBroadcast(this, 1, intentAlarm1, PendingIntent.FLAG_CANCEL_CURRENT));
-                alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, secondReminder.getTimeInMillis(), 24 * 60 * 60 * 1000, PendingIntent.getBroadcast(this, 2, intentAlarm2, PendingIntent.FLAG_CANCEL_CURRENT));
-                alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, thirdReminder.getTimeInMillis(), 24 * 60 * 60 * 1000, PendingIntent.getBroadcast(this, 3, intentAlarm3, PendingIntent.FLAG_CANCEL_CURRENT));
+                alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, firstReminder.getTimeInMillis(), 7 * 24 * 60 * 60 * 1000, PendingIntent.getBroadcast(this, 1, intentAlarm1, PendingIntent.FLAG_CANCEL_CURRENT));
+                alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, secondReminder.getTimeInMillis(), 7 * 24 * 60 * 60 * 1000, PendingIntent.getBroadcast(this, 2, intentAlarm2, PendingIntent.FLAG_CANCEL_CURRENT));
+                alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, thirdReminder.getTimeInMillis(), 7 * 24 * 60 * 60 * 1000, PendingIntent.getBroadcast(this, 3, intentAlarm3, PendingIntent.FLAG_CANCEL_CURRENT));
             }
         }
     }
@@ -351,6 +358,7 @@ public class MainActivity extends AppCompatActivity {
     public void launchTutorial(MenuItem menu){
         MaterialShowcaseSequence sequence = new MaterialShowcaseSequence(this);
         final MaterialShowcaseView addPlant = new MaterialShowcaseView.Builder(this)
+                .setMaskColour(R.color.colorPrimary)
                 .setTarget(findViewById(R.id.addPlantButton))
                 .setDismissText("GOT IT")
                 .setContentText("To add a plant to your garden, select the add button here")
@@ -359,6 +367,7 @@ public class MainActivity extends AppCompatActivity {
         sequence.addSequenceItem(addPlant);
         final CardView cardExample = (CardView) findViewById(R.id.card_example);
         final MaterialShowcaseView plantView = new MaterialShowcaseView.Builder(this)
+                .setMaskColour(R.color.colorPrimary)
                 .setTarget(cardExample)
                 .setDismissText("GOT IT")
                 .setContentText("As you add plants, they will appear here. Selecting one will show you a detailed view of that plant")
@@ -370,15 +379,23 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onDismiss(MaterialShowcaseView materialShowcaseView, int i) {
                 if (materialShowcaseView.equals(addPlant)){
-                    if (preferences.getBoolean("firstRun", true)){
-                        cardExample.setVisibility(View.VISIBLE);
-                    }
+                    cardExample.setVisibility(View.VISIBLE);
                 }
                 if (materialShowcaseView.equals(plantView)){
                     cardExample.setVisibility(View.GONE);
                 }
             }
         });
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
+                        .setTarget(toolbar.getChildAt(1))
+                        .setDismissText("GOT IT")
+                        .setContentText("Reminders for watering your plants can be adjusted in the 'Settings' menu")
+                        .setDelay(250)
+                        .build()
+        );
         sequence.start();
     }
     public void launchSettings(MenuItem menu){

@@ -26,7 +26,6 @@ public class LoginActivity extends AppCompatActivity {
     private SQLiteDatabase db;
     private ArrayList<User> users;
 
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_login, menu);
@@ -53,6 +52,14 @@ public class LoginActivity extends AppCompatActivity {
             Handler customHandler = new Handler();
             customHandler.postDelayed(firstTutorial, 1000);
         }
+    }
+
+    @Override
+    public void onRestart() {
+        super.onRestart();
+        finish();
+        Intent intent = new Intent(getBaseContext(), LoginActivity.class);
+        startActivity(intent);
     }
 
     private void setupDatabase(){
@@ -92,10 +99,10 @@ public class LoginActivity extends AppCompatActivity {
                 }
             }
         }
-        Toast.makeText(LoginActivity.this, "Username or password is incorrect - logging in anyways", Toast.LENGTH_SHORT).show();
-        Intent intent = new Intent(getBaseContext(), MainActivity.class);
-        intent.putExtra("username", "default");
-        startActivity(intent);
+        Toast.makeText(LoginActivity.this, "Username or password is incorrect, please try again", Toast.LENGTH_SHORT).show();
+//        Intent intent = new Intent(getBaseContext(), MainActivity.class);
+//        intent.putExtra("username", "default");
+//        startActivity(intent);
     }
 
     private Runnable firstTutorial = new Runnable () {
