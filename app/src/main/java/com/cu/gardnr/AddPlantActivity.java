@@ -34,9 +34,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 public class AddPlantActivity extends AppCompatActivity {
     private SQLiteDatabase db;
@@ -93,11 +91,7 @@ public class AddPlantActivity extends AppCompatActivity {
 
     private void setupUI(){
         Spinner frequencySpinner = (Spinner) findViewById(R.id.frequencySpinner);
-
-        List<String> frequencies = new ArrayList<String>();
-        frequencies.add("1x a week");
-        frequencies.add("2x a week");
-        frequencies.add("3x a week");
+        String[] frequencies = getResources().getStringArray(R.array.frequencies);
 
         ArrayAdapter<String> waterAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, frequencies);
         waterAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
