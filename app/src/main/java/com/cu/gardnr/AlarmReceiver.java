@@ -7,7 +7,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.support.v4.app.NotificationCompat;
-import android.widget.Toast;
 
 import static android.content.Context.NOTIFICATION_SERVICE;
 
@@ -19,7 +18,7 @@ public class AlarmReceiver extends BroadcastReceiver {
 
         NotificationCompat.Builder mBuilder =
                 new NotificationCompat.Builder(context)
-                        .setSmallIcon(R.drawable.icon)
+                        .setSmallIcon(R.drawable.ic_water)
                         .setContentTitle("My notification")
                         .setContentText(username);
 

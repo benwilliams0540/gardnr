@@ -8,8 +8,9 @@ public class Plant {
     private String location;
     private String light;
     private String water;
+    private boolean notification;
 
-    public Plant (Integer pid, String imageID, String username, String name, String location, String light, String water) {
+    public Plant (Integer pid, String imageID, String username, String name, String location, String light, String water, String notification) {
         this.pid = pid;
         this.image = imageID;
         this.username = username;
@@ -17,6 +18,18 @@ public class Plant {
         this.location = location;
         this.light = light;
         this.water = water;
+        setNotificationFromString(notification);
+    }
+
+    public Plant (Integer pid, String imageID, String username, String name, String location, String light, String water, boolean notification) {
+        this.pid = pid;
+        this.image = imageID;
+        this.username = username;
+        this.name = name;
+        this.location = location;
+        this.light = light;
+        this.water = water;
+        this.notification = notification;
     }
 
     public Integer getPID() { return pid; }
@@ -58,6 +71,26 @@ public class Plant {
     }
     public void setWater(String water) {
         this.water = water;
+    }
+
+    public boolean getNotification() { return notification; }
+    public void setNotification(boolean notification) { this.notification = notification; }
+
+    public String getNotificationString() {
+        if (notification){
+            return "true";
+        }
+        else {
+            return "false";
+        }
+    }
+    public void setNotificationFromString(String string) {
+        if (string.equalsIgnoreCase("true")){
+            notification = true;
+        }
+        else {
+            notification = false;
+        }
     }
 
 

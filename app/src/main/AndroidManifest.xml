@@ -23,7 +23,7 @@
         <activity android:name=".SignupActivity"></activity>
         <activity android:name=".MainActivity"></activity>
         <activity android:name=".PlantActivity"></activity>
-        <activity android:name=".CreatePlantActivity"></activity>
+        <activity android:name=".AddPlantActivity"></activity>
         <receiver android:name=".AlarmReceiver"/>
 
         <provider

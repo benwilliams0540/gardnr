@@ -13,8 +13,6 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.helper.ItemTouchHelper;
-import android.util.Log;
-import android.view.DragEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -23,7 +21,7 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
     private static SQLiteDatabase db;
-    private static String username;
+    public static String username;
     private static ArrayList<Plant> plants;
 
     private static RecyclerView rv;
@@ -58,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
         plants = new ArrayList<Plant>();
 
         try {
-            String sqlString = "CREATE TABLE IF NOT exists plants (pid INTEGER PRIMARY KEY, image VARCHAR, username VARCHAR, name VARCHAR, location VARCHAR, light VARCHAR, water VARCHAR)";
+            String sqlString = "CREATE TABLE IF NOT exists plants (pid INTEGER PRIMARY KEY, image VARCHAR, username VARCHAR, name VARCHAR, location VARCHAR, light VARCHAR, water VARCHAR, notification VARCHAR)";
             db = this.openOrCreateDatabase("gardnr", MODE_PRIVATE, null);
             db.execSQL(sqlString);
         } catch (Exception e){
@@ -73,10 +71,11 @@ public class MainActivity extends AppCompatActivity {
         int locIndex = c.getColumnIndex("location");
         int lightIndex = c.getColumnIndex("light");
         int waterIndex = c.getColumnIndex("water");
+        int notifIndex = c.getColumnIndex("notification");
 
         c.moveToFirst();
         for (int i = 0; i < c.getCount(); i++){
-            plants.add(new Plant(c.getInt(pIndex), c.getString(imageIndex), c.getString(userIndex), c.getString(nameIndex), c.getString(locIndex), c.getString(lightIndex), c.getString(waterIndex)));
+            plants.add(new Plant(c.getInt(pIndex), c.getString(imageIndex), c.getString(userIndex), c.getString(nameIndex), c.getString(locIndex), c.getString(lightIndex), c.getString(waterIndex), c.getString(notifIndex)));
             c.moveToNext();
         }
 
@@ -133,7 +132,7 @@ public class MainActivity extends AppCompatActivity {
     };
 
     public void launchCreatePlant(){
-        Intent intent = new Intent(getBaseContext(), CreatePlantActivity.class);
+        Intent intent = new Intent(getBaseContext(), AddPlantActivity.class);
         intent.putExtra("username", username);
         startActivity(intent);
     }

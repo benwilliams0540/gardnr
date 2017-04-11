@@ -1,6 +1,7 @@
 package com.cu.gardnr;
 
 import android.content.ContentValues;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.sqlite.SQLiteDatabase;
@@ -12,15 +13,17 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.FileProvider;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Spinner;
@@ -35,44 +38,61 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class CreatePlantActivity extends AppCompatActivity {
-    SQLiteDatabase db;
+public class AddPlantActivity extends AppCompatActivity {
+    private SQLiteDatabase db;
     private String username;
     private String imagePath;
 
     @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                AlertDialog.Builder builder = new AlertDialog.Builder(AddPlantActivity.this);
+
+                builder.setTitle("Are you sure you want to discard this draft?")
+                        .setIcon(R.drawable.ic_delete)
+                        .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+
+                            }
+                        })
+                        .setPositiveButton("Discard", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                AddPlantActivity.super.onBackPressed();
+                            }
+                        });
+                AlertDialog dialog = builder.create();
+                dialog.show();
+
+                return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_main, menu);
+        getMenuInflater().inflate(R.menu.menu_add, menu);
         return true;
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_create_plant);
+        setContentView(R.layout.activity_add_plant);
         username = getIntent().getStringExtra("username");
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setHomeButtonEnabled(true);
 
         imagePath = "";
         setupUI();
     }
 
     private void setupUI(){
-        Spinner waterSpinner = (Spinner) findViewById(R.id.waterSpinner);
-        waterSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                String item = parent.getItemAtPosition(position).toString();
-                Toast.makeText(parent.getContext(), "Selected: " + item, Toast.LENGTH_SHORT);
-                //if (position == )
-            }
-            @Override
-            public void onNothingSelected(AdapterView<?> arg0){
-
-            }
-        });
+        Spinner frequencySpinner = (Spinner) findViewById(R.id.frequencySpinner);
 
         List<String> frequencies = new ArrayList<String>();
         frequencies.add("1x a week");
@@ -81,7 +101,40 @@ public class CreatePlantActivity extends AppCompatActivity {
 
         ArrayAdapter<String> waterAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, frequencies);
         waterAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        waterSpinner.setAdapter(waterAdapter);
+        frequencySpinner.setAdapter(waterAdapter);
+
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.cameraButton);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String[] sources = {"Gallery", "Camera"};
+                AlertDialog.Builder builder = new AlertDialog.Builder(AddPlantActivity.this);
+
+                builder.setTitle("Choose a source")
+                        .setItems(sources, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int position) {
+                                addPhoto(position);
+                            }
+                        });
+                AlertDialog dialog = builder.create();
+                dialog.show();
+            }
+        });
+
+    }
+
+    private File createImageFile() throws IOException {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(
+                imageFileName,
+                ".jpg",
+                storageDir
+        );
+
+        imagePath = image.getAbsolutePath();
+        return image;
     }
 
     private boolean checkStoragePermissions(){
@@ -112,10 +165,43 @@ public class CreatePlantActivity extends AppCompatActivity {
         }
     }
 
+    private void addPhoto(int source){
+        File photoFile = null;
+
+        if (source == 0){
+            if (Build.VERSION.SDK_INT < 23) {
+                Intent takePictureIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                startActivityForResult(takePictureIntent, 1);
+            }
+            else {
+                if (checkStoragePermissions()) {
+                    Intent takePictureIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                    startActivityForResult(takePictureIntent, 1);
+                }
+                else {
+                    requestPermissions(new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
+                }
+            }
+        }
+        else if (source == 1) {
+            if (Build.VERSION.SDK_INT < 23) {
+                saveCameraPhoto();
+            }
+            else {
+                if (checkCameraPermissions()){
+                    saveCameraPhoto();
+                }
+                else {
+                    requestPermissions(new String[]{android.Manifest.permission.CAMERA}, 2);
+                }
+            }
+        }
+    }
+
     private void saveGalleryPhoto(Bitmap image) {
         try {
-            File pictureFile = createImageFile();
-            FileOutputStream fos = new FileOutputStream(pictureFile);
+            File photoFile = createImageFile();
+            FileOutputStream fos = new FileOutputStream(photoFile);
             image.compress(Bitmap.CompressFormat.JPEG, 90, fos);
             fos.close();
         } catch (FileNotFoundException e) {
@@ -154,20 +240,6 @@ public class CreatePlantActivity extends AppCompatActivity {
         }
     }
 
-    private File createImageFile() throws IOException {
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        String imageFileName = "JPEG_" + timeStamp + "_";
-        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        File image = File.createTempFile(
-                imageFileName,
-                ".jpg",
-                storageDir
-        );
-
-        imagePath = image.getAbsolutePath();
-        return image;
-    }
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults){
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -188,7 +260,7 @@ public class CreatePlantActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        ImageView plantImage = (ImageView) findViewById(R.id.plantImage);
+        ImageView plantImage = (ImageView) findViewById(R.id.defaultPlant);
 
         if (requestCode == 1 && resultCode == RESULT_OK && data != null){
             Uri selectedImage = data.getData();
@@ -207,61 +279,41 @@ public class CreatePlantActivity extends AppCompatActivity {
         }
     }
 
-    public void galleryPhoto(View view){
-        if (Build.VERSION.SDK_INT < 23) {
-            Intent takePictureIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-            startActivityForResult(takePictureIntent, 1);
+    public void createPlant(MenuItem menu){
+        EditText nameEditText = (EditText) findViewById(R.id.nameEditText);
+        EditText locationEditText = (EditText) findViewById(R.id.locationEditText);
+        EditText lightEditText = (EditText) findViewById(R.id.lightEditText);
+        Spinner frequencySpinner = (Spinner) findViewById(R.id.frequencySpinner);
+        CheckBox notificationCheckBox = (CheckBox) findViewById(R.id.notificationCheckBox);
+
+        String name = nameEditText.getText().toString();
+        String location = locationEditText.getText().toString();
+        String light = lightEditText.getText().toString();
+        String frequency = frequencySpinner.getSelectedItem().toString();
+        String notification;
+
+        if (notificationCheckBox.isChecked()){
+            notification = "true";
         }
         else {
-            if (checkStoragePermissions()) {
-                Intent takePictureIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                startActivityForResult(takePictureIntent, 1);
-            }
-            else {
-                requestPermissions(new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
-            }
+            notification = "false";
         }
-    }
-
-    public void cameraPhoto(View view){
-        if (Build.VERSION.SDK_INT < 23) {
-            saveCameraPhoto();
-        }
-        else {
-            if (checkCameraPermissions()){
-                saveCameraPhoto();
-            }
-            else {
-                requestPermissions(new String[]{android.Manifest.permission.CAMERA}, 2);
-            }
-        }
-    }
-
-    public void addPlant(View view){
-        EditText nameText = (EditText) findViewById(R.id.nameText);
-        EditText locationText = (EditText) findViewById(R.id.locationText);
-        EditText lightText = (EditText) findViewById(R.id.lightText);
-        Spinner spinner = (Spinner) findViewById(R.id.waterSpinner);
-        String name = nameText.getText().toString();
-        String location = locationText.getText().toString();
-        String light = lightText.getText().toString();
-        String frequency = spinner.getSelectedItem().toString();
 
         if (name.length() < 1) {
-            Toast.makeText(CreatePlantActivity.this, "Name cannot be empty", Toast.LENGTH_SHORT).show();
+            Toast.makeText(AddPlantActivity.this, "Name cannot be empty", Toast.LENGTH_SHORT).show();
         }
         else if (location.length() < 1) {
-            Toast.makeText(CreatePlantActivity.this, "Location cannot be empty", Toast.LENGTH_SHORT).show();
+            Toast.makeText(AddPlantActivity.this, "Location cannot be empty", Toast.LENGTH_SHORT).show();
         }
         else if (light.length() < 1) {
-            Toast.makeText(CreatePlantActivity.this, "Light cannot be empty", Toast.LENGTH_SHORT).show();
+            Toast.makeText(AddPlantActivity.this, "Light cannot be empty", Toast.LENGTH_SHORT).show();
         }
         else if (imagePath.equals("")){
-            Toast.makeText(CreatePlantActivity.this, "A photo of the plant must be set", Toast.LENGTH_SHORT).show();
+            Toast.makeText(AddPlantActivity.this, "A photo of the plant must be set", Toast.LENGTH_SHORT).show();
         }
         else {
             try {
-                String sqlString = "CREATE TABLE IF NOT exists plants (pid INTEGER PRIMARY KEY, image VARCHAR, username VARCHAR, name VARCHAR, location VARCHAR, light VARCHAR, water VARCHAR)";
+                String sqlString = "CREATE TABLE IF NOT exists plants (pid INTEGER PRIMARY KEY, image VARCHAR, username VARCHAR, name VARCHAR, location VARCHAR, light VARCHAR, water VARCHAR, notification VARCHAR)";
                 db = this.openOrCreateDatabase("gardnr", MODE_PRIVATE, null);
                 db.execSQL(sqlString);
             } catch (Exception e) {
@@ -275,6 +327,7 @@ public class CreatePlantActivity extends AppCompatActivity {
             insertValues.put("location", location);
             insertValues.put("light", light);
             insertValues.put("water", frequency);
+            insertValues.put("notification", notification);
 
             try {
                 db.insertOrThrow("plants", null, insertValues);
@@ -282,16 +335,9 @@ public class CreatePlantActivity extends AppCompatActivity {
                 intent.putExtra("username", username);
                 startActivity(intent);
             } catch (Exception e) {
-                Toast.makeText(CreatePlantActivity.this, "Error adding plant", Toast.LENGTH_SHORT).show();
+                Toast.makeText(AddPlantActivity.this, "Error adding plant", Toast.LENGTH_SHORT).show();
                 e.printStackTrace();
             }
         }
-    }
-
-    public void launchSettings(MenuItem menu){
-        startActivity(new Intent(CreatePlantActivity.this, MainActivity.class));
-    }
-    public void launchInfo(MenuItem menu){
-        startActivity(new Intent(CreatePlantActivity.this, MainActivity.class));
     }
 }
