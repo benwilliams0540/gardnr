@@ -125,6 +125,7 @@ public class PlantActivity extends AppCompatActivity {
     };
 
     private void setupUI(){
+        imagePath = plant.getImage();
         ImageView plantImage = (ImageView) findViewById(R.id.defaultPlant);
         EditText nameEditText = (EditText) findViewById(R.id.nameEditText);
         EditText locationEditText = (EditText) findViewById(R.id.locationEditText);

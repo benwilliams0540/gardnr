@@ -20,8 +20,8 @@ import android.view.View;
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
-    private static SQLiteDatabase db;
     public static String username;
+    private static SQLiteDatabase db;
     private static ArrayList<Plant> plants;
 
     private static RecyclerView rv;
@@ -137,7 +137,7 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
     }
     public void launchSettings(MenuItem menu){
-        startActivity(new Intent(MainActivity.this, MainActivity.class));
+        startActivity(new Intent(MainActivity.this, SettingsActivity.class));
     }
     public void launchInfo(MenuItem menu){
         startActivity(new Intent(MainActivity.this, MainActivity.class));
