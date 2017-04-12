@@ -40,6 +40,11 @@ public class LoginActivity extends AppCompatActivity {
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        preferences = this.getSharedPreferences("com.cu.gardnr", Context.MODE_PRIVATE);
+//        if (preferences.getBoolean("signedUp", true)){
+//            preferences.edit().putBoolean("signedUp", false).apply();
+//            startActivity(new Intent(LoginActivity.this, SignupActivity.class));
+//        }
         setupDatabase();
     }
 
@@ -47,7 +52,6 @@ public class LoginActivity extends AppCompatActivity {
     protected void onPostCreate(Bundle savedInstanceState){
         super.onPostCreate(savedInstanceState);
 
-        preferences = this.getSharedPreferences("com.cu.gardnr", Context.MODE_PRIVATE);
         if (preferences.getBoolean("firstRun", true)){
             Handler customHandler = new Handler();
             customHandler.postDelayed(firstTutorial, 1000);

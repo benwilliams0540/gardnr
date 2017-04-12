@@ -379,7 +379,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onDismiss(MaterialShowcaseView materialShowcaseView, int i) {
                 if (materialShowcaseView.equals(addPlant)){
-                    cardExample.setVisibility(View.VISIBLE);
+                    if (plants.size() == 0) {
+                        cardExample.setVisibility(View.VISIBLE);
+                    }
                 }
                 if (materialShowcaseView.equals(plantView)){
                     cardExample.setVisibility(View.GONE);
