@@ -7,13 +7,13 @@ import android.os.Handler;
 import android.support.design.widget.Snackbar;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,8 +36,6 @@ public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHol
         EditText plantWater;
 
         ImageView plantPhoto;
-//        private int mOriginalHeight = 0;
-//        private boolean mIsViewExpanded = false;
 
         PlantViewHolder(View itemView) {
             super(itemView);
@@ -70,16 +68,21 @@ public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHol
         plantViewHolder.plantLocation.setText(plants.get(i).getLocation());
         plantViewHolder.plantWater.setText(plants.get(i).getWater());
         String imagePath = plants.get(i).getImage();
-        Handler customHandler = new Handler();
-        Runnable scaleImage = createImageRunnable(plantViewHolder, imagePath);
-        customHandler.post(scaleImage);
+        if (imagePath.equalsIgnoreCase("")){
+            plantViewHolder.plantPhoto.setImageResource(R.drawable.plant);
+        }
+        else {
+            Handler customHandler = new Handler();
+            Runnable scaleImage = createImageRunnable(plantViewHolder, imagePath);
+            customHandler.post(scaleImage);
+        }
 
         plantViewHolder.cv.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(final View v) {
                 Intent intent = new Intent(v.getContext(), PlantActivity.class);
                 intent.putExtra("plant", plants.get(i).getPID());
-                intent.putExtra("username", MainActivity.username);
+                intent.putExtra("username", MainActivity.getUsername());
                 v.getContext().startActivity(intent);
             }
         });
@@ -99,17 +102,28 @@ public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHol
                 .setAction("UNDO", new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        Log.i("position", "" + adapterPosition);
-                        Handler customHandler = new Handler();
-                        Runnable undo = createUndoRunnable(plant, adapterPosition);
-                        customHandler.post(undo);
+                        Utilities.cancelRemove();
+                        plants.add(adapterPosition, plant);
+                        notifyItemInserted(adapterPosition);
+                        recyclerView.scrollToPosition(adapterPosition);
+                        plantsToDelete.remove(plant);
                     }
                 });
-        snackbar.show();
-        MainActivity.removePlant(plant);
-        plants.remove(adapterPosition);
-        notifyItemRemoved(adapterPosition);
-        plantsToDelete.add(plant);
+        if (MainActivity.getNetworkStatus()) {
+            snackbar.show();
+            Utilities.removePlant(plant);
+            plants.remove(adapterPosition);
+            notifyItemRemoved(adapterPosition);
+            plantsToDelete.add(plant);
+        }
+        else {
+            Toast.makeText(snackbar.getContext(), "Unable to delete plant without an internet connection", Toast.LENGTH_LONG).show();
+            Utilities.cancelRemove();
+            plants.add(adapterPosition, plant);
+            notifyItemInserted(adapterPosition);
+            recyclerView.scrollToPosition(adapterPosition);
+            plantsToDelete.remove(plant);
+        }
     }
 
     private Runnable createImageRunnable(final PlantViewHolder plantViewHolder, final String imagePath) {
@@ -133,18 +147,5 @@ public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHol
             }
         };
         return scaleImage;
-    }
-
-    private Runnable createUndoRunnable(final Plant plant, final int position){
-        Runnable undo = new Runnable() {
-            public void run() {
-                MainActivity.cancelRemove();
-                plants.add(position, plant);
-                notifyItemInserted(position);
-                recyclerView.scrollToPosition(position);
-                plantsToDelete.remove(plant);
-            }
-        };
-        return undo;
     }
 }

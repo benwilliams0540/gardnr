@@ -1,9 +1,9 @@
 package com.cu.gardnr;
 
-import android.content.ContentValues;
 import android.content.Intent;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -12,11 +12,14 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import java.util.ArrayList;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.HashMap;
 
 public class SignupActivity extends AppCompatActivity {
-    private static SQLiteDatabase db;
-    private static ArrayList<User> users;
+    private User user;
+    private static NetworkChangeReceiver networkChangeReceiver;
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -25,7 +28,6 @@ public class SignupActivity extends AppCompatActivity {
                 super.onBackPressed();
                 return true;
         }
-
         return super.onOptionsItemSelected(item);
     }
 
@@ -39,27 +41,70 @@ public class SignupActivity extends AppCompatActivity {
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setHomeButtonEnabled(true);
 
-        setupDatabase();
+        networkChangeReceiver = new NetworkChangeReceiver();
+        networkChangeReceiver.setInitialStatus(getBaseContext());
+
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+        getBaseContext().registerReceiver(networkChangeReceiver, intentFilter);
     }
 
-    private void setupDatabase(){
-        users = new ArrayList<User>();
-        try {
-            String sqlString = "CREATE TABLE IF NOT exists users (username VARCHAR PRIMARY KEY, password VARCHAR)";
-            db = this.openOrCreateDatabase("gardnr", MODE_PRIVATE, null);
-            db.execSQL(sqlString);
-        } catch (Exception e){
-            e.printStackTrace();
+    @Override
+    public void onPause(){
+        super.onPause();
+        getBaseContext().unregisterReceiver(networkChangeReceiver);
+    }
+
+    @Override
+    public void onResume(){
+        super.onResume();
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+        getBaseContext().registerReceiver(networkChangeReceiver, intentFilter);
+    }
+
+    class AddUser extends AsyncTask<String, String, String> {
+        protected String doInBackground(String... args){
+            if (networkChangeReceiver.getNetworkStatus()) {
+                JSONParser jParser = new JSONParser();
+                HashMap params = new HashMap<>();
+                params.put("username", user.getUsername());
+                params.put("password", user.getPassword());
+
+                String URL = "https://people.cs.clemson.edu/~brw2/x820/gardnr/scripts/add_user.php";
+                JSONObject json = jParser.makeHttpRequest(URL, "POST", params);
+
+                try {
+                    int success = json.getInt("success");
+                    if (success == 1) {
+                        return "success";
+                    } else {
+                        return "failure";
+                    }
+                } catch (JSONException e) {
+                    return "failure";
+                }
+            }
+            else {
+                return "networkFailure";
+            }
         }
 
-        Cursor c = db.rawQuery("SELECT * FROM users", null);
-        int uid = c.getColumnIndex("username");
-        int pid = c.getColumnIndex("password");
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
 
-        c.moveToFirst();
-        for (int i = 0; i < c.getCount(); i++){
-            users.add(new User(c.getString(uid), c.getString(pid)));
-            c.moveToNext();
+            if (s.equalsIgnoreCase("success")){
+                Intent intent = new Intent(getBaseContext(), MainActivity.class);
+                intent.putExtra("username", user.getUsername());
+                startActivity(intent);
+            }
+            else if (s.equalsIgnoreCase("failure")){
+                Toast.makeText(SignupActivity.this, "Username is already taken, please try another", Toast.LENGTH_LONG).show();
+            }
+            else {
+                Toast.makeText(SignupActivity.this, "Unable to add user without internet connection", Toast.LENGTH_LONG).show();
+            }
         }
     }
 
@@ -71,22 +116,20 @@ public class SignupActivity extends AppCompatActivity {
         String password = pwField.getText().toString();
         String confirm = pw2Field.getText().toString();
 
+        if (username.equals("")){
+            Toast.makeText(SignupActivity.this, "Username cannot be empty", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (password.equals("")){
+            Toast.makeText(SignupActivity.this, "Password cannot be empty", Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (!password.equals(confirm)){
             Toast.makeText(SignupActivity.this, "Passwords must match", Toast.LENGTH_SHORT).show();
+            return;
         }
-        else {
-            ContentValues insertValues = new ContentValues();
-            insertValues.put("username", username);
-            insertValues.put("password", password);
-            try {
-                db.insertOrThrow("users", null, insertValues);
-                users.add(new User(username, password));
-                Intent intent = new Intent(getBaseContext(), MainActivity.class);
-                intent.putExtra("username", username);
-                startActivity(intent);
-            } catch (Exception e){
-                Toast.makeText(SignupActivity.this, "Username already taken", Toast.LENGTH_SHORT).show();
-            }
-        }
+
+        user = new User(username, password);
+        new AddUser().execute();
     }
 }
