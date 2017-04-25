@@ -7,6 +7,7 @@ import android.os.Handler;
 import android.support.design.widget.Snackbar;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -68,6 +69,7 @@ public class PlantAdapter extends RecyclerView.Adapter<PlantAdapter.PlantViewHol
         plantViewHolder.plantLocation.setText(plants.get(i).getLocation());
         plantViewHolder.plantWater.setText(plants.get(i).getWater());
         String imagePath = plants.get(i).getImage();
+        Log.i("imagePath", imagePath);
         if (imagePath.equalsIgnoreCase("")){
             plantViewHolder.plantPhoto.setImageResource(R.drawable.plant);
         }

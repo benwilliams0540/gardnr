@@ -10,6 +10,11 @@ public class Plant {
     private String water;
     private boolean notification;
 
+    public Plant (Integer pid, String imageID){
+        this.pid = pid;
+        this.image = imageID;
+    }
+
     public Plant (Integer pid, String imageID, String username, String name, String location, String light, String water, String notification) {
         this.pid = pid;
         this.image = imageID;

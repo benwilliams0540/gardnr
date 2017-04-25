@@ -8,7 +8,6 @@ import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.AsyncTask;
 import android.os.Build;
-import android.util.Log;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -205,7 +204,6 @@ public class Utilities {
         protected String doInBackground(String... args){
             JSONParser jParser = new JSONParser();
             HashMap params = new HashMap<>();
-            Log.i("PID to delete", currentPlant.getPID().toString());
             params.put("pid", currentPlant.getPID().toString());
             String URL = "https://people.cs.clemson.edu/~brw2/x820/gardnr/scripts/delete_plant.php";
             JSONObject json = jParser.makeHttpRequest(URL, "POST", params);

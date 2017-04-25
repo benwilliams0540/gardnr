@@ -7,9 +7,12 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.ConnectivityManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
@@ -18,6 +21,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.helper.ItemTouchHelper;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -27,7 +31,17 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 
 import uk.co.deanwild.materialshowcaseview.MaterialShowcaseSequence;
@@ -37,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
     private static SQLiteDatabase db;
     private static ArrayList<Plant> plants;
     private static String username;
+    private static String image;
 
     private static RecyclerView rv;
     private static LinearLayoutManager llm;
@@ -112,14 +127,16 @@ public class MainActivity extends AppCompatActivity {
 
         try {
             String sqlString = "CREATE TABLE IF NOT exists plants (pid INTEGER PRIMARY KEY, image VARCHAR, username VARCHAR, name VARCHAR, location VARCHAR, light VARCHAR, water VARCHAR, notification VARCHAR)";
+            String sqlString2 = "CREATE TABLE IF NOT exists photos (pid INTEGER, image VARCHAR)";
             db = this.openOrCreateDatabase("gardnr", MODE_PRIVATE, null);
             db.execSQL(sqlString);
+            db.execSQL(sqlString2);
         } catch (Exception e){
             e.printStackTrace();
         }
     }
 
-    class GetPlants extends AsyncTask<String, String, String> {
+    private class GetPlants extends AsyncTask<String, String, String> {
         protected String doInBackground(String... args) {
             if (networkChangeReceiver.getNetworkStatus()) {
                 JSONParser jParser = new JSONParser();
@@ -180,7 +197,7 @@ public class MainActivity extends AppCompatActivity {
                 loadDatabase();
             }
             else {
-                customHandler.post(loadUI);
+                checkPictures();
             }
         }
     }
@@ -203,6 +220,117 @@ public class MainActivity extends AppCompatActivity {
         }
 
         customHandler.post(loadUI);
+    }
+
+    private void checkPictures(){
+        Cursor c = db.rawQuery("SELECT * FROM plants WHERE username='" + username + "'", null);
+        int pIndex = c.getColumnIndex("pid");
+        int imageIndex = c.getColumnIndex("image");
+
+        c.moveToFirst();
+        for (int i = 0; i < c.getCount(); i++){
+            int pid = c.getInt(pIndex);
+            String imageURL = c.getString(imageIndex);
+
+            Cursor p = db.rawQuery("SELECT * FROM photos WHERE pid='" + pid + "'", null);
+
+            if (p.getCount() == 0){
+                downloadImage(pid, imageURL);
+            }
+            else {
+                p.moveToFirst();
+                int imageIndex2 = p.getColumnIndex("image");
+                String localImage = p.getString(imageIndex2);
+
+                for (int j = 0; i < plants.size(); i++){
+                    if (plants.get(j).getPID().equals(pid)){
+                        plants.get(j).setImage(localImage);
+                    }
+                }
+
+                ContentValues newValues = new ContentValues();
+                newValues.put("image", localImage);
+
+                String[] args = new String[]{"" + pid};
+                db.update("plants", newValues, "pid=?", args);
+            }
+
+            c.moveToNext();
+        }
+        customHandler.post(loadUI);
+    }
+
+    private void downloadImage(int pid, String image){
+        ImageDownloader task = new ImageDownloader();
+        try {
+            Bitmap bitmap = task.execute(image).get();
+            savePhoto(bitmap, pid);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public class ImageDownloader extends AsyncTask<String, Void, Bitmap> {
+        @Override
+        protected Bitmap doInBackground(String... urls){
+            try {
+                URL url = new URL(urls[0]);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+                connection.connect();
+
+                InputStream inputStream = connection.getInputStream();
+
+                Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+
+                return bitmap;
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+    }
+
+    private File createImageFile(int pid) throws IOException {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(
+                imageFileName,
+                ".jpg",
+                storageDir
+        );
+
+        ContentValues insertValues = new ContentValues();
+        insertValues.put("pid", pid);
+        Log.i("image being inserted", image.getAbsolutePath());
+        insertValues.put("image", image.getAbsolutePath());
+
+        for (int i = 0; i < plants.size(); i++){
+            if (plants.get(i).getPID().equals(pid)){
+                plants.get(i).setImage(image.getAbsolutePath());
+            }
+        }
+
+        db.insertOrThrow("photos", null, insertValues);
+
+        this.image = image.getAbsolutePath();
+        return image;
+    }
+
+    private void savePhoto(Bitmap image, int pid) {
+        try {
+            File photoFile = createImageFile(pid);
+            FileOutputStream fos = new FileOutputStream(photoFile);
+            image.compress(Bitmap.CompressFormat.JPEG, 90, fos);
+            fos.close();
+        } catch (FileNotFoundException e) {
+            Log.d("", "File not found: " + e.getMessage());
+        } catch (IOException e) {
+            Log.d("", "Error accessing file: " + e.getMessage());
+        }
     }
 
     private Runnable loadUI = new Runnable () {
