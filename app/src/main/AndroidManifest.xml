@@ -27,6 +27,7 @@
         <activity android:name=".PlantActivity"></activity>
         <activity android:name=".AddPlantActivity"></activity>
         <activity android:name=".SettingsActivity"></activity>
+        <activity android:name=".InfoActivity"></activity>
         <receiver android:name=".AlarmReceiver"/>
 
         <provider

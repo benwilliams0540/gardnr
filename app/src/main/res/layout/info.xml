@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <include
+        layout="@layout/toolbar_main"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/textView2"
+                android:layout_width="335dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="start"
+                android:paddingTop="20dp"
+                android:paddingLeft="20dp"
+                android:text="Gardnr is an app created by Benjamin Williams and Eric Hahn for CPSC 4820, Spring 2017. The app is designed to be used by anybody that owns houseplants or maintains a garden."
+                android:textAlignment="textStart" />
+
+            <TextView
+                android:id="@+id/textView3"
+                android:layout_width="335dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="start"
+                android:paddingTop="20dp"
+                android:paddingLeft="20dp"
+                android:text="Tutorials can be found and accessed by clicking the question mark button near the top right of every page. They will walk the user through everything on the page and explain how it works. "
+                android:textAlignment="textStart" />
+
+            <TextView
+                android:id="@+id/textView4"
+                android:layout_width="335dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="start"
+                android:paddingTop="20dp"
+                android:paddingLeft="20dp"
+                android:text="Acknowledgements: This app was created with the help from all of the following. Rob Percival's Android course on Udemy, specifically the sections about downloading images. Mulltiple articles across w3schools.com for SQL and php help. Dean Wild, for the MaterialShowcaseView that we used for the tutorial system. Daniel Nugent, whose code helped with handling JSON parsing. Multiple articles on stackoverflow.com for miscellaneous help."
+                android:textAlignment="textStart" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

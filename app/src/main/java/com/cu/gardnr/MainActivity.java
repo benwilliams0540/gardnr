@@ -302,6 +302,6 @@ public class MainActivity extends AppCompatActivity {
         startActivity(new Intent(MainActivity.this, SettingsActivity.class));
     }
     public void launchInfo(MenuItem menu){
-        startActivity(new Intent(MainActivity.this, MainActivity.class));
+        startActivity(new Intent(MainActivity.this, InfoActivity.class));
     }
 }
