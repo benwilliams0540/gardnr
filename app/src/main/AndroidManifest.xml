@@ -25,6 +25,7 @@
         <activity android:name=".SignupActivity"></activity>
         <activity android:name=".MainActivity"></activity>
         <activity android:name=".PlantActivity"></activity>
+        <activity android:name=".FullScreenActivity"></activity>
         <activity android:name=".AddPlantActivity"></activity>
         <activity android:name=".SettingsActivity"></activity>
         <activity android:name=".InfoActivity"></activity>

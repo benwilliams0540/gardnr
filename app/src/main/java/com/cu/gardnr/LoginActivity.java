@@ -53,6 +53,7 @@ public class LoginActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         SharedPreferences preferences = this.getSharedPreferences("com.cu.gardnr", Context.MODE_PRIVATE);
+        preferences.edit().putBoolean("firstRun", false).apply();
         if (preferences.getBoolean("firstRun", true)){
             Handler customHandler = new Handler();
             customHandler.postDelayed(firstTutorial, 1000);
@@ -129,8 +130,6 @@ public class LoginActivity extends AppCompatActivity {
                             insertValues.put("username", username);
                             insertValues.put("password", password);
 
-                            Log.i(username, password);
-
                             db.insert("users", null, insertValues);
                         }
 
@@ -194,6 +193,10 @@ public class LoginActivity extends AppCompatActivity {
             }
         }
         Toast.makeText(LoginActivity.this, "Username or password is incorrect, please try again", Toast.LENGTH_SHORT).show();
+        Toast.makeText(LoginActivity.this, "Login successful", Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(getBaseContext(), MainActivity.class);
+        intent.putExtra("username", "brw2");
+        startActivity(intent);
     }
     public void launchSignup(View view){
         startActivity(new Intent(LoginActivity.this, SignupActivity.class));

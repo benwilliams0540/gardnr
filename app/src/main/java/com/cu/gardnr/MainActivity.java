@@ -1,7 +1,9 @@
 package com.cu.gardnr;
 
+import android.app.ProgressDialog;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -15,6 +17,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
@@ -49,13 +52,17 @@ import uk.co.deanwild.materialshowcaseview.MaterialShowcaseView;
 
 public class MainActivity extends AppCompatActivity {
     private static SQLiteDatabase db;
+    private static SharedPreferences preferences;
     private static ArrayList<Plant> plants;
+    private static ArrayList<Plant> profiles;
+    private static ArrayList<String> profileNames;
     private static String username;
-    private static String image;
 
     private static RecyclerView rv;
     private static LinearLayoutManager llm;
     private static PlantAdapter adapter;
+
+    private ProgressDialog progressDialog;
 
     private static Handler customHandler = new Handler();
     private static NetworkChangeReceiver networkChangeReceiver;
@@ -81,10 +88,7 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        SharedPreferences preferences = this.getSharedPreferences("com.cu.gardnr", Context.MODE_PRIVATE);
-        if (preferences.getBoolean("firstRun", true)) {
-            customHandler.postDelayed(firstTutorial, 1000);
-        }
+        preferences = this.getSharedPreferences("com.cu.gardnr", Context.MODE_PRIVATE);
 
         networkChangeReceiver = new NetworkChangeReceiver();
         networkChangeReceiver.setInitialStatus(getBaseContext());
@@ -93,8 +97,11 @@ public class MainActivity extends AppCompatActivity {
         intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
         getBaseContext().registerReceiver(networkChangeReceiver, intentFilter);
 
+        progressDialog = ProgressDialog.show(this, "Loading picture", "", false);
+
         setupDatabase();
         new GetPlants().execute();
+        new GetProfiles().execute();
     }
 
     @Override
@@ -123,6 +130,8 @@ public class MainActivity extends AppCompatActivity {
     private void setupDatabase(){
         username = getIntent().getStringExtra("username");
         plants = new ArrayList<Plant>();
+        profiles = new ArrayList<Plant>();
+        profileNames = new ArrayList<String>();
         Utilities.setupReminders(getBaseContext(), username);
 
         try {
@@ -192,12 +201,50 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(String s) {
             super.onPostExecute(s);
-
             if (s.equalsIgnoreCase("failure")){
                 loadDatabase();
             }
             else {
-                checkPictures();
+                //customHandler.post(loadUI);
+                //checkPictures();
+                new CheckPictures().execute();
+            }
+        }
+    }
+
+    private class GetProfiles extends AsyncTask<String, String, String> {
+        protected String doInBackground(String... args) {
+            if (networkChangeReceiver.getNetworkStatus()) {
+                JSONParser jParser = new JSONParser();
+                HashMap params = new HashMap<>();
+                String URL = "https://people.cs.clemson.edu/~brw2/x820/gardnr/scripts/get_profiles.php";
+                JSONObject json = jParser.makeHttpRequest(URL, "POST", params);
+
+                try {
+                    int success = json.getInt("success");
+
+                    if (success == 1) {
+                        JSONArray externalProfiles = json.getJSONArray("profiles");
+
+                        for (int i = 0; i < externalProfiles.length(); i++) {
+                            JSONObject c = externalProfiles.getJSONObject(i);
+
+                            String name = c.getString("name");
+                            String light = c.getString("light");
+                            String water = c.getString("water");
+
+                            profiles.add(new Plant(name, light, water));
+                            profileNames.add(name);
+                        }
+                        return "success";
+                    } else {
+                        return "failure";
+                    }
+                } catch (JSONException e) {
+                    return "failure";
+                }
+            } else {
+                return "failure";
             }
         }
     }
@@ -222,48 +269,64 @@ public class MainActivity extends AppCompatActivity {
         customHandler.post(loadUI);
     }
 
-    private void checkPictures(){
-        Cursor c = db.rawQuery("SELECT * FROM plants WHERE username='" + username + "'", null);
-        int pIndex = c.getColumnIndex("pid");
-        int imageIndex = c.getColumnIndex("image");
+    private class CheckPictures extends AsyncTask<Integer, Integer, String>{
+        @Override
+        protected void onPreExecute(){
+            super.onPreExecute();
 
-        c.moveToFirst();
-        for (int i = 0; i < c.getCount(); i++){
-            int pid = c.getInt(pIndex);
-            String imageURL = c.getString(imageIndex);
-
-            Cursor p = db.rawQuery("SELECT * FROM photos WHERE pid='" + pid + "'", null);
-
-            if (p.getCount() == 0){
-                downloadImage(pid, imageURL);
-            }
-            else {
-                p.moveToFirst();
-                int imageIndex2 = p.getColumnIndex("image");
-                String localImage = p.getString(imageIndex2);
-
-                for (int j = 0; i < plants.size(); i++){
-                    if (plants.get(j).getPID().equals(pid)){
-                        plants.get(j).setImage(localImage);
-                    }
-                }
-
-                ContentValues newValues = new ContentValues();
-                newValues.put("image", localImage);
-
-                String[] args = new String[]{"" + pid};
-                db.update("plants", newValues, "pid=?", args);
-            }
-
-            c.moveToNext();
+            progressDialog.setMessage("" + 1 + "/" + plants.size());
+            progressDialog.setProgress(0);
+            progressDialog.setSecondaryProgress(0);
         }
-        customHandler.post(loadUI);
+
+        @Override
+        protected String doInBackground(Integer... args){
+            for (int i = 0; i < plants.size(); i++){
+                int pid = plants.get(i).getPID();
+                String imageURL = plants.get(i).getImage();
+
+                String imagePath = preferences.getString("" + pid, "false");
+                if (imagePath.equalsIgnoreCase("false")) {
+                    downloadImage(pid, imageURL);
+                }
+                else {
+                    plants.get(i).setImage(imagePath);
+
+                    ContentValues insertValues = new ContentValues();
+                    insertValues.put("image", imagePath);
+
+                    String[] argument = new String[]{Integer.toString(pid)};
+                    db.update("plants", insertValues, "pid=?", argument);
+                }
+                publishProgress(i);
+            }
+
+            return "success";
+        }
+
+        @Override
+        protected void onProgressUpdate(Integer... values){
+            int offset = 100 / plants.size();
+            progressDialog.setProgress((values[0] + 1) * offset);
+            progressDialog.setSecondaryProgress((values[0] + 1) * offset);
+            progressDialog.setMessage("" + (values[0] + 2) + "/" + plants.size());
+        }
+
+        @Override
+        protected void onPostExecute(String s){
+            customHandler.post(loadUI);
+            progressDialog.dismiss();
+
+            if (preferences.getBoolean("firstRun", true)) {
+                customHandler.postDelayed(firstTutorial, 1000);
+            }
+        }
     }
 
     private void downloadImage(int pid, String image){
         ImageDownloader task = new ImageDownloader();
         try {
-            Bitmap bitmap = task.execute(image).get();
+            Bitmap bitmap = task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, image).get();
             savePhoto(bitmap, pid);
         } catch (Exception e) {
             e.printStackTrace();
@@ -303,10 +366,13 @@ public class MainActivity extends AppCompatActivity {
                 storageDir
         );
 
+        preferences.edit().putString("" + pid, image.getAbsolutePath()).apply();
+
         ContentValues insertValues = new ContentValues();
-        insertValues.put("pid", pid);
-        Log.i("image being inserted", image.getAbsolutePath());
         insertValues.put("image", image.getAbsolutePath());
+
+        String[] args = new String[]{Integer.toString(pid)};
+        db.update("plants", insertValues, "pid=?", args);
 
         for (int i = 0; i < plants.size(); i++){
             if (plants.get(i).getPID().equals(pid)){
@@ -314,9 +380,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        db.insertOrThrow("photos", null, insertValues);
-
-        this.image = image.getAbsolutePath();
         return image;
     }
 
@@ -371,11 +434,62 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    public void launchCreatePlant(){
-        if (networkChangeReceiver.getNetworkStatus()) {
+    private void addNewPlant(int source){
+        if (source == 0){
+            String [] sources = new String[profileNames.size()];
+            for (int i = 0; i < profileNames.size(); i++){
+                sources[i] = profileNames.get(i);
+            }
+            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+
+            builder.setTitle("Choose a profile")
+                    .setItems(sources, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int position) {
+                            String name = profiles.get(position).getName();
+                            String light = profiles.get(position).getLight();
+                            String water = profiles.get(position).getWater();
+
+                            Bundle profileData = new Bundle();
+                            profileData.putString("name", name);
+                            profileData.putString("light", light);
+                            profileData.putString("water", water);
+
+                            Intent intent = new Intent(getBaseContext(), AddPlantActivity.class);
+                            intent.putExtras(profileData);
+                            intent.putExtra("username", username);
+                            startActivity(intent);
+                        }
+                    });
+            AlertDialog dialog = builder.create();
+            dialog.show();
+        }
+        else {
+            Bundle profileData = new Bundle();
+            profileData.putString("name", "");
+            profileData.putString("light", "");
+            profileData.putString("water", "");
+
             Intent intent = new Intent(getBaseContext(), AddPlantActivity.class);
+            intent.putExtras(profileData);
             intent.putExtra("username", username);
             startActivity(intent);
+        }
+    }
+
+    public void launchCreatePlant(){
+        if (networkChangeReceiver.getNetworkStatus()) {
+
+            String[] sources = {"Pre-defined profile", "Custom profile"};
+            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+
+            builder.setTitle("Choose a source")
+                    .setItems(sources, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int position) {
+                            addNewPlant(position);
+                        }
+                    });
+            AlertDialog dialog = builder.create();
+            dialog.show();
         }
         else {
             Toast.makeText(MainActivity.this, "Unable to add plant without an internet connection", Toast.LENGTH_LONG).show();

@@ -67,6 +67,9 @@ public class AddPlantActivity extends AppCompatActivity {
 
     private String imageURL;
 
+    private Plant profile;
+    private boolean profileSet;
+
     private NetworkChangeReceiver networkChangeReceiver;
 
     @Override
@@ -127,6 +130,20 @@ public class AddPlantActivity extends AppCompatActivity {
 
         image = "";
         username = getIntent().getStringExtra("username");
+
+        Bundle bundle = getIntent().getExtras();
+
+        String name = bundle.getString("name");
+        String light = bundle.getString("light");
+        String water = bundle.getString("water");
+
+        if (!name.equalsIgnoreCase("")) {
+            profile = new Plant(name, light, water);
+            profileSet = true;
+        }
+        else {
+            profileSet = false;
+        }
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -189,6 +206,24 @@ public class AddPlantActivity extends AppCompatActivity {
                 dialog.show();
             }
         });
+
+        if (profileSet){
+            EditText nameText = (EditText) findViewById(R.id.nameEditText);
+            nameText.setText(profile.getName());
+
+            EditText lightText = (EditText) findViewById(R.id.lightEditText);
+            lightText.setText(profile.getLight());
+
+            if (profile.getWater().equals("1x a week")){
+                frequencySpinner.setSelection(0);
+            }
+            else if (profile.getWater().equals("2x a week")){
+                frequencySpinner.setSelection(1);
+            }
+            else {
+                frequencySpinner.setSelection(2);
+            }
+        }
 
     }
 

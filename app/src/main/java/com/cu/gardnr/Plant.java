@@ -1,6 +1,7 @@
 package com.cu.gardnr;
 
 public class Plant {
+    private Integer id;
     private Integer pid;
     private String image;
     private String username;
@@ -13,6 +14,18 @@ public class Plant {
     public Plant (Integer pid, String imageID){
         this.pid = pid;
         this.image = imageID;
+    }
+
+    public Plant (Integer id, Integer pid, String image){
+        this.id = id;
+        this.pid = pid;
+        this.image = image;
+    }
+
+    public Plant (String name, String light, String water){
+        this.name = name;
+        this.light = light;
+        this.water = water;
     }
 
     public Plant (Integer pid, String imageID, String username, String name, String location, String light, String water, String notification) {
@@ -35,6 +48,13 @@ public class Plant {
         this.light = light;
         this.water = water;
         this.notification = notification;
+    }
+
+    public Integer getID() {
+        return id;
+    }
+    public void setID(Integer id) {
+        this.id = id;
     }
 
     public Integer getPID() { return pid; }

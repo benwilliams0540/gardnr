@@ -1,14 +1,18 @@
 package com.cu.gardnr;
 
+import android.app.ProgressDialog;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -20,6 +24,7 @@ import android.support.v4.content.FileProvider;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -32,12 +37,22 @@ import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.Toast;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 
 import uk.co.deanwild.materialshowcaseview.MaterialShowcaseSequence;
 import uk.co.deanwild.materialshowcaseview.MaterialShowcaseView;
@@ -45,10 +60,14 @@ import uk.co.deanwild.materialshowcaseview.MaterialShowcaseView;
 public class PlantActivity extends AppCompatActivity {
     private Integer pid;
     private Plant plant;
+    private ArrayList<Plant> photos;
     private String imagePath = "";
     private String username;
     private static SQLiteDatabase db;
+    private static SharedPreferences preferences;
     private static Handler customHandler = new Handler();
+
+    private ProgressDialog progressDialog;
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -105,10 +124,14 @@ public class PlantActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_add_plant);
+        setContentView(R.layout.activity_plant);
 
         pid = getIntent().getIntExtra("plant", 0);
         username = getIntent().getStringExtra("username");
+        photos = new ArrayList<Plant>();
+
+        progressDialog = ProgressDialog.show(this, "Loading timeline picture", "", false);
+        preferences = this.getSharedPreferences("com.cu.gardnr", Context.MODE_PRIVATE);
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -140,9 +163,165 @@ public class PlantActivity extends AppCompatActivity {
 
             c.moveToFirst();
             plant = new Plant(c.getInt(pIndex), c.getString(imageIndex), c.getString(userIndex), c.getString(nameIndex), c.getString(locIndex), c.getString(lightIndex), c.getString(waterIndex), c.getString(notifIndex));
-            setupUI();
+            //setupUI();
+            new GetPhotos().execute();
         }
     };
+
+    private class GetPhotos extends AsyncTask<String, String, String> {
+        protected String doInBackground(String... args) {
+            JSONParser jParser = new JSONParser();
+            HashMap params = new HashMap<>();
+            params.put("pid", Integer.toString(plant.getPID()));
+            String URL = "https://people.cs.clemson.edu/~brw2/x820/gardnr/scripts/get_photos.php";
+            JSONObject json = jParser.makeHttpRequest(URL, "POST", params);
+
+            try {
+                int success = json.getInt("success");
+
+                if (success == 1) {
+                    JSONArray externalProfiles = json.getJSONArray("photos");
+
+                    for (int i = 0; i < externalProfiles.length(); i++) {
+                        JSONObject c = externalProfiles.getJSONObject(i);
+
+                        int id = c.getInt("id");
+                        int pid = c.getInt("pid");
+                        String image = c.getString("image");
+                        photos.add(new Plant(id, pid, image));
+                    }
+                    return "success";
+                } else {
+                    return "failure";
+                }
+            } catch (JSONException e) {
+                return "failure";
+            }
+        }
+
+        @Override
+        protected void onPostExecute(String s){
+            new CheckPictures().execute();
+        }
+    }
+
+    private class CheckPictures extends AsyncTask<Integer, Integer, String>{
+        @Override
+        protected void onPreExecute(){
+            super.onPreExecute();
+
+            progressDialog.setMessage("" + 1 + "/" + photos.size());
+            progressDialog.setProgress(0);
+            progressDialog.setSecondaryProgress(0);
+        }
+
+        @Override
+        protected String doInBackground(Integer... args){
+            for (int i = 0; i < photos.size(); i++){
+                int id = photos.get(i).getID();
+                int pid = photos.get(i).getPID();
+                String imageURL = photos.get(i).getImage();
+
+                String imagePath = preferences.getString("" + pid + id, "false");
+                if (imagePath.equalsIgnoreCase("false")) {
+                    downloadImage(pid, id, imageURL);
+                }
+                else {
+                    photos.get(i).setImage(imagePath);
+
+                    //ContentValues insertValues = new ContentValues();
+                    //insertValues.put("image", imagePath);
+
+                    //String[] argument = new String[]{Integer.toString(pid)};
+                    //db.update("plants", insertValues, "pid=?", argument);
+                }
+                publishProgress(i);
+            }
+
+            return "success";
+        }
+
+        @Override
+        protected void onProgressUpdate(Integer... values){
+            int offset = 100 / photos.size();
+            progressDialog.setProgress((values[0] + 1) * offset);
+            progressDialog.setSecondaryProgress((values[0] + 1) * offset);
+            progressDialog.setMessage("" + (values[0] + 2) + "/" + photos.size());
+        }
+
+        @Override
+        protected void onPostExecute(String s){
+            progressDialog.dismiss();
+            setupUI();
+        }
+    }
+
+    private void downloadImage(int pid, int id, String image){
+        PlantActivity.ImageDownloader task = new PlantActivity.ImageDownloader();
+        try {
+            Bitmap bitmap = task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, image).get();
+            savePhoto(bitmap, pid, id);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public class ImageDownloader extends AsyncTask<String, Void, Bitmap> {
+        @Override
+        protected Bitmap doInBackground(String... urls){
+            try {
+                URL url = new URL(urls[0]);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+                connection.connect();
+
+                InputStream inputStream = connection.getInputStream();
+
+                Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+
+                return bitmap;
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+    }
+
+    private File createImageFile(int pid, int id) throws IOException {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(
+                imageFileName,
+                ".jpg",
+                storageDir
+        );
+
+        preferences.edit().putString("" + pid + id, image.getAbsolutePath()).apply();
+
+        for (int i = 0; i < photos.size(); i++){
+            if (photos.get(i).getID().equals(id)){
+                photos.get(i).setImage(image.getAbsolutePath());
+            }
+        }
+
+        return image;
+    }
+
+    private void savePhoto(Bitmap image, int pid, int id) {
+        try {
+            File photoFile = createImageFile(pid, id);
+            FileOutputStream fos = new FileOutputStream(photoFile);
+            image.compress(Bitmap.CompressFormat.JPEG, 90, fos);
+            fos.close();
+        } catch (FileNotFoundException e) {
+            Log.d("", "File not found: " + e.getMessage());
+        } catch (IOException e) {
+            Log.d("", "Error accessing file: " + e.getMessage());
+        }
+    }
 
     private void setupUI(){
         imagePath = plant.getImage();
@@ -195,6 +374,36 @@ public class PlantActivity extends AppCompatActivity {
                 dialog.show();
             }
         });
+
+        for (int i = 0; i < photos.size(); i++){
+            Log.i("imagePath", photos.get(i).getImage());
+
+            final Bitmap b = BitmapFactory.decodeFile(photos.get(i).getImage());
+            final ImageView image = new ImageView(this);
+
+            image.setImageBitmap(Bitmap.createScaledBitmap(b, dpToPx(80), dpToPx(80), false));
+            image.setPadding(dpToPx(2), 0, dpToPx(2), 0);
+
+            image.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Intent intent = new Intent(PlantActivity.this, FullScreenActivity.class);
+
+                    Bundle extras = new Bundle();
+                    extras.putString("image", plant.getImage());
+                    intent.putExtras(extras);
+                    startActivity(intent);
+                }
+            });
+
+            LinearLayout timelineLayout = (LinearLayout) findViewById(R.id.timelineLayout);
+            timelineLayout.addView(image);
+        }
+    }
+
+    public int dpToPx(int dp) {
+        DisplayMetrics displayMetrics = getBaseContext().getResources().getDisplayMetrics();
+        return Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
     }
 
     private File createImageFile() throws IOException {
