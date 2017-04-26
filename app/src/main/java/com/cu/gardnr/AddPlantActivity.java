@@ -71,6 +71,11 @@ public class AddPlantActivity extends AppCompatActivity {
     private boolean profileSet;
 
     private NetworkChangeReceiver networkChangeReceiver;
+    private Runnable firstTutorial = new Runnable() {
+        public void run() {
+            launchTutorial(null);
+        }
+    };
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -249,12 +254,7 @@ public class AddPlantActivity extends AppCompatActivity {
             return true;
         }
         else {
-            if (checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                return false;
-            }
-            else {
-                return true;
-            }
+            return checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
         }
     }
 
@@ -263,12 +263,7 @@ public class AddPlantActivity extends AppCompatActivity {
             return true;
         }
         else {
-            if (checkSelfPermission(android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                return false;
-            }
-            else {
-                return true;
-            }
+            return checkSelfPermission(android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
         }
     }
 
@@ -386,11 +381,137 @@ public class AddPlantActivity extends AppCompatActivity {
         }
     }
 
-    private Runnable firstTutorial = new Runnable () {
-        public void run() {
-            launchTutorial(null);
+    public void addToInternal() {
+        try {
+            String sqlString = "CREATE TABLE IF NOT exists plants (pid INTEGER PRIMARY KEY, image VARCHAR, username VARCHAR, name VARCHAR, location VARCHAR, light VARCHAR, water VARCHAR, notification VARCHAR)";
+            db = this.openOrCreateDatabase("gardnr", MODE_PRIVATE, null);
+            db.execSQL(sqlString);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-    };
+
+        ContentValues insertValues = new ContentValues();
+        insertValues.put("image", imageURL);
+        insertValues.put("username", username);
+        insertValues.put("name", name);
+        insertValues.put("location", location);
+        insertValues.put("light", light);
+        insertValues.put("water", water);
+        insertValues.put("notification", notification);
+
+        try {
+            db.insertOrThrow("plants", null, insertValues);
+            Intent intent = new Intent(getBaseContext(), MainActivity.class);
+            intent.putExtra("username", username);
+            startActivity(intent);
+        } catch (Exception e) {
+            Toast.makeText(AddPlantActivity.this, "Error adding plant", Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+        }
+    }
+
+    public void launchTutorial(MenuItem menu) {
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        LinearLayout nameLayout = (LinearLayout) findViewById(R.id.nameLayout);
+        LinearLayout locationLayout = (LinearLayout) findViewById(R.id.locationLayout);
+        LinearLayout lightLayout = (LinearLayout) findViewById(R.id.lightLayout);
+        LinearLayout waterLayout = (LinearLayout) findViewById(R.id.waterLayout);
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.cameraButton);
+
+        MaterialShowcaseSequence sequence = new MaterialShowcaseSequence(this);
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
+                        .setTarget(nameLayout)
+                        .setDismissText("GOT IT")
+                        .setContentText("Set the plant name here (e.g. 'Hydrangea')")
+                        .withRectangleShape()
+                        .setDelay(250)
+                        .build()
+        );
+
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
+                        .setTarget(locationLayout)
+                        .setDismissText("GOT IT")
+                        .setContentText("Set the plant's physical location here (e.g. 'Front porch')")
+                        .withRectangleShape()
+                        .setDelay(250)
+                        .build()
+        );
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
+                        .setTarget(lightLayout)
+                        .setDismissText("GOT IT")
+                        .setContentText("Enter the plant's light requirements here (e.g. 'Moderate shade')")
+                        .withRectangleShape()
+                        .setDelay(250)
+                        .build()
+        );
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
+                        .setTarget(waterLayout)
+                        .setDismissText("GOT IT")
+                        .setContentText("Enter the plant's watering frequency here")
+                        .withRectangleShape()
+                        .setDelay(250)
+                        .build()
+        );
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
+                        .setTarget(fab)
+                        .setDismissText("GOT IT")
+                        .setContentText("Select a photo for the plant from either the gallery or camera here")
+                        .setDelay(250)
+                        .build()
+        );
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
+                        .setTarget(toolbar.getChildAt(2))
+                        .setDismissText("GOT IT")
+                        .setContentText("When you are finished entering the plant's information, select the check mark to add it to your garden!")
+                        .setDelay(250)
+                        .build()
+        );
+        sequence.start();
+    }
+
+    public void createPlant(MenuItem menu) {
+        EditText nameEditText = (EditText) findViewById(R.id.nameEditText);
+        EditText locationEditText = (EditText) findViewById(R.id.locationEditText);
+        EditText lightEditText = (EditText) findViewById(R.id.lightEditText);
+        Spinner frequencySpinner = (Spinner) findViewById(R.id.frequencySpinner);
+        CheckBox notificationCheckBox = (CheckBox) findViewById(R.id.notificationCheckBox);
+
+        name = nameEditText.getText().toString();
+        location = locationEditText.getText().toString();
+        light = lightEditText.getText().toString();
+        water = frequencySpinner.getSelectedItem().toString();
+
+        if (notificationCheckBox.isChecked()) {
+            notification = "true";
+        } else {
+            notification = "false";
+        }
+
+        if (name.length() < 1) {
+            Toast.makeText(AddPlantActivity.this, "Name cannot be empty", Toast.LENGTH_SHORT).show();
+        } else if (location.length() < 1) {
+            Toast.makeText(AddPlantActivity.this, "Location cannot be empty", Toast.LENGTH_SHORT).show();
+        } else if (light.length() < 1) {
+            Toast.makeText(AddPlantActivity.this, "Light cannot be empty", Toast.LENGTH_SHORT).show();
+        } else if (image.equals("")) {
+            Toast.makeText(AddPlantActivity.this, "A photo of the plant must be set", Toast.LENGTH_SHORT).show();
+        } else {
+            new AddPlant().execute();
+            new UploadFileAsync().execute();
+        }
+    }
 
     private class AddPlant extends AsyncTask<String, String, String> {
         protected String doInBackground(String... args){
@@ -555,155 +676,6 @@ public class AddPlantActivity extends AppCompatActivity {
                 ex.printStackTrace();
             }
             return "Executed";
-        }
-
-        @Override
-        protected void onPostExecute(String result) {
-
-        }
-
-        @Override
-        protected void onPreExecute() {
-        }
-
-        @Override
-        protected void onProgressUpdate(Void... values) {
-        }
-    }
-
-    public void addToInternal(){
-        try {
-            String sqlString = "CREATE TABLE IF NOT exists plants (pid INTEGER PRIMARY KEY, image VARCHAR, username VARCHAR, name VARCHAR, location VARCHAR, light VARCHAR, water VARCHAR, notification VARCHAR)";
-            db = this.openOrCreateDatabase("gardnr", MODE_PRIVATE, null);
-            db.execSQL(sqlString);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        ContentValues insertValues = new ContentValues();
-        insertValues.put("image", imageURL);
-        insertValues.put("username", username);
-        insertValues.put("name", name);
-        insertValues.put("location", location);
-        insertValues.put("light", light);
-        insertValues.put("water", water);
-        insertValues.put("notification", notification);
-
-        try {
-            db.insertOrThrow("plants", null, insertValues);
-            Intent intent = new Intent(getBaseContext(), MainActivity.class);
-            intent.putExtra("username", username);
-            startActivity(intent);
-        } catch (Exception e) {
-            Toast.makeText(AddPlantActivity.this, "Error adding plant", Toast.LENGTH_SHORT).show();
-            e.printStackTrace();
-        }
-    }
-
-    public void launchTutorial(MenuItem menu){
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        LinearLayout nameLayout = (LinearLayout) findViewById(R.id.nameLayout);
-        LinearLayout locationLayout = (LinearLayout) findViewById(R.id.locationLayout);
-        LinearLayout lightLayout = (LinearLayout) findViewById(R.id.lightLayout);
-        LinearLayout waterLayout = (LinearLayout) findViewById(R.id.waterLayout);
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.cameraButton);
-
-        MaterialShowcaseSequence sequence = new MaterialShowcaseSequence(this);
-        sequence.addSequenceItem(
-                new MaterialShowcaseView.Builder(this)
-                        .setMaskColour(R.color.colorPrimary)
-                        .setTarget(nameLayout)
-                        .setDismissText("GOT IT")
-                        .setContentText("Set the plant name here (e.g. 'Hydrangea')")
-                        .withRectangleShape()
-                        .setDelay(250)
-                        .build()
-        );
-
-        sequence.addSequenceItem(
-                new MaterialShowcaseView.Builder(this)
-                        .setMaskColour(R.color.colorPrimary)
-                        .setTarget(locationLayout)
-                        .setDismissText("GOT IT")
-                        .setContentText("Set the plant's physical location here (e.g. 'Front porch')")
-                        .withRectangleShape()
-                        .setDelay(250)
-                        .build()
-        );
-        sequence.addSequenceItem(
-                new MaterialShowcaseView.Builder(this)
-                        .setMaskColour(R.color.colorPrimary)
-                        .setTarget(lightLayout)
-                        .setDismissText("GOT IT")
-                        .setContentText("Enter the plant's light requirements here (e.g. 'Moderate shade')")
-                        .withRectangleShape()
-                        .setDelay(250)
-                        .build()
-        );
-        sequence.addSequenceItem(
-                new MaterialShowcaseView.Builder(this)
-                        .setMaskColour(R.color.colorPrimary)
-                        .setTarget(waterLayout)
-                        .setDismissText("GOT IT")
-                        .setContentText("Enter the plant's watering frequency here")
-                        .withRectangleShape()
-                        .setDelay(250)
-                        .build()
-        );
-        sequence.addSequenceItem(
-                new MaterialShowcaseView.Builder(this)
-                        .setMaskColour(R.color.colorPrimary)
-                        .setTarget(fab)
-                        .setDismissText("GOT IT")
-                        .setContentText("Select a photo for the plant from either the gallery or camera here")
-                        .setDelay(250)
-                        .build()
-        );
-        sequence.addSequenceItem(
-                new MaterialShowcaseView.Builder(this)
-                        .setMaskColour(R.color.colorPrimary)
-                        .setTarget(toolbar.getChildAt(2))
-                        .setDismissText("GOT IT")
-                        .setContentText("When you are finished entering the plant's information, select the check mark to add it to your garden!")
-                        .setDelay(250)
-                        .build()
-        );
-        sequence.start();
-    }
-    public void createPlant(MenuItem menu){
-        EditText nameEditText = (EditText) findViewById(R.id.nameEditText);
-        EditText locationEditText = (EditText) findViewById(R.id.locationEditText);
-        EditText lightEditText = (EditText) findViewById(R.id.lightEditText);
-        Spinner frequencySpinner = (Spinner) findViewById(R.id.frequencySpinner);
-        CheckBox notificationCheckBox = (CheckBox) findViewById(R.id.notificationCheckBox);
-
-        name = nameEditText.getText().toString();
-        location = locationEditText.getText().toString();
-        light = lightEditText.getText().toString();
-        water = frequencySpinner.getSelectedItem().toString();
-
-        if (notificationCheckBox.isChecked()){
-            notification = "true";
-        }
-        else {
-            notification = "false";
-        }
-
-        if (name.length() < 1) {
-            Toast.makeText(AddPlantActivity.this, "Name cannot be empty", Toast.LENGTH_SHORT).show();
-        }
-        else if (location.length() < 1) {
-            Toast.makeText(AddPlantActivity.this, "Location cannot be empty", Toast.LENGTH_SHORT).show();
-        }
-        else if (light.length() < 1) {
-            Toast.makeText(AddPlantActivity.this, "Light cannot be empty", Toast.LENGTH_SHORT).show();
-        }
-        else if (image.equals("")){
-            Toast.makeText(AddPlantActivity.this, "A photo of the plant must be set", Toast.LENGTH_SHORT).show();
-        }
-        else {
-            new AddPlant().execute();
-            new UploadFileAsync().execute();
         }
     }
 }

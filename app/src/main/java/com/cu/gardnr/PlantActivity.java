@@ -41,7 +41,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -58,16 +60,45 @@ import uk.co.deanwild.materialshowcaseview.MaterialShowcaseSequence;
 import uk.co.deanwild.materialshowcaseview.MaterialShowcaseView;
 
 public class PlantActivity extends AppCompatActivity {
+    private static SQLiteDatabase db;
+    private static SharedPreferences preferences;
+    private static Handler customHandler = new Handler();
     private Integer pid;
     private Plant plant;
     private ArrayList<Plant> photos;
     private String imagePath = "";
     private String username;
-    private static SQLiteDatabase db;
-    private static SharedPreferences preferences;
-    private static Handler customHandler = new Handler();
+    private boolean timelinePhoto = false;
+    private String timelineURI;
+    private String timelineURL;
 
     private ProgressDialog progressDialog;
+    private Runnable loadPlant = new Runnable() {
+        public void run() {
+            try {
+                String sqlString = "CREATE TABLE IF NOT exists plants (pid INTEGER PRIMARY KEY, image VARCHAR, username VARCHAR, name VARCHAR, location VARCHAR, light VARCHAR, water VARCHAR, notification VARCHAR)";
+                db = PlantActivity.this.openOrCreateDatabase("gardnr", MODE_PRIVATE, null);
+                db.execSQL(sqlString);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            Cursor c = db.rawQuery("SELECT * FROM plants WHERE pid='" + pid + "'", null);
+            int pIndex = c.getColumnIndex("pid");
+            int imageIndex = c.getColumnIndex("image");
+            int userIndex = c.getColumnIndex("username");
+            int nameIndex = c.getColumnIndex("name");
+            int locIndex = c.getColumnIndex("location");
+            int lightIndex = c.getColumnIndex("light");
+            int waterIndex = c.getColumnIndex("water");
+            int notifIndex = c.getColumnIndex("notification");
+
+            c.moveToFirst();
+            plant = new Plant(c.getInt(pIndex), c.getString(imageIndex), c.getString(userIndex), c.getString(nameIndex), c.getString(locIndex), c.getString(lightIndex), c.getString(waterIndex), c.getString(notifIndex));
+            //setupUI();
+            new GetPhotos().execute();
+        }
+    };
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -141,121 +172,6 @@ public class PlantActivity extends AppCompatActivity {
         customHandler.post(loadPlant);
     }
 
-    private Runnable loadPlant = new Runnable () {
-        public void run() {
-            try {
-                String sqlString = "CREATE TABLE IF NOT exists plants (pid INTEGER PRIMARY KEY, image VARCHAR, username VARCHAR, name VARCHAR, location VARCHAR, light VARCHAR, water VARCHAR, notification VARCHAR)";
-                db = PlantActivity.this.openOrCreateDatabase("gardnr", MODE_PRIVATE, null);
-                db.execSQL(sqlString);
-            } catch (Exception e){
-                e.printStackTrace();
-            }
-
-            Cursor c = db.rawQuery("SELECT * FROM plants WHERE pid='" + pid + "'", null);
-            int pIndex = c.getColumnIndex("pid");
-            int imageIndex = c.getColumnIndex("image");
-            int userIndex = c.getColumnIndex("username");
-            int nameIndex = c.getColumnIndex("name");
-            int locIndex = c.getColumnIndex("location");
-            int lightIndex = c.getColumnIndex("light");
-            int waterIndex = c.getColumnIndex("water");
-            int notifIndex = c.getColumnIndex("notification");
-
-            c.moveToFirst();
-            plant = new Plant(c.getInt(pIndex), c.getString(imageIndex), c.getString(userIndex), c.getString(nameIndex), c.getString(locIndex), c.getString(lightIndex), c.getString(waterIndex), c.getString(notifIndex));
-            //setupUI();
-            new GetPhotos().execute();
-        }
-    };
-
-    private class GetPhotos extends AsyncTask<String, String, String> {
-        protected String doInBackground(String... args) {
-            JSONParser jParser = new JSONParser();
-            HashMap params = new HashMap<>();
-            params.put("pid", Integer.toString(plant.getPID()));
-            String URL = "https://people.cs.clemson.edu/~brw2/x820/gardnr/scripts/get_photos.php";
-            JSONObject json = jParser.makeHttpRequest(URL, "POST", params);
-
-            try {
-                int success = json.getInt("success");
-
-                if (success == 1) {
-                    JSONArray externalProfiles = json.getJSONArray("photos");
-
-                    for (int i = 0; i < externalProfiles.length(); i++) {
-                        JSONObject c = externalProfiles.getJSONObject(i);
-
-                        int id = c.getInt("id");
-                        int pid = c.getInt("pid");
-                        String image = c.getString("image");
-                        photos.add(new Plant(id, pid, image));
-                    }
-                    return "success";
-                } else {
-                    return "failure";
-                }
-            } catch (JSONException e) {
-                return "failure";
-            }
-        }
-
-        @Override
-        protected void onPostExecute(String s){
-            new CheckPictures().execute();
-        }
-    }
-
-    private class CheckPictures extends AsyncTask<Integer, Integer, String>{
-        @Override
-        protected void onPreExecute(){
-            super.onPreExecute();
-
-            progressDialog.setMessage("" + 1 + "/" + photos.size());
-            progressDialog.setProgress(0);
-            progressDialog.setSecondaryProgress(0);
-        }
-
-        @Override
-        protected String doInBackground(Integer... args){
-            for (int i = 0; i < photos.size(); i++){
-                int id = photos.get(i).getID();
-                int pid = photos.get(i).getPID();
-                String imageURL = photos.get(i).getImage();
-
-                String imagePath = preferences.getString("" + pid + id, "false");
-                if (imagePath.equalsIgnoreCase("false")) {
-                    downloadImage(pid, id, imageURL);
-                }
-                else {
-                    photos.get(i).setImage(imagePath);
-
-                    //ContentValues insertValues = new ContentValues();
-                    //insertValues.put("image", imagePath);
-
-                    //String[] argument = new String[]{Integer.toString(pid)};
-                    //db.update("plants", insertValues, "pid=?", argument);
-                }
-                publishProgress(i);
-            }
-
-            return "success";
-        }
-
-        @Override
-        protected void onProgressUpdate(Integer... values){
-            int offset = 100 / photos.size();
-            progressDialog.setProgress((values[0] + 1) * offset);
-            progressDialog.setSecondaryProgress((values[0] + 1) * offset);
-            progressDialog.setMessage("" + (values[0] + 2) + "/" + photos.size());
-        }
-
-        @Override
-        protected void onPostExecute(String s){
-            progressDialog.dismiss();
-            setupUI();
-        }
-    }
-
     private void downloadImage(int pid, int id, String image){
         PlantActivity.ImageDownloader task = new PlantActivity.ImageDownloader();
         try {
@@ -263,29 +179,6 @@ public class PlantActivity extends AppCompatActivity {
             savePhoto(bitmap, pid, id);
         } catch (Exception e) {
             e.printStackTrace();
-        }
-    }
-
-    public class ImageDownloader extends AsyncTask<String, Void, Bitmap> {
-        @Override
-        protected Bitmap doInBackground(String... urls){
-            try {
-                URL url = new URL(urls[0]);
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-
-                connection.connect();
-
-                InputStream inputStream = connection.getInputStream();
-
-                Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-
-                return bitmap;
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return null;
         }
     }
 
@@ -416,7 +309,13 @@ public class PlantActivity extends AppCompatActivity {
                 storageDir
         );
 
-        imagePath = image.getAbsolutePath();
+        if (timelinePhoto) {
+            String filename = image.getAbsolutePath().substring(image.getAbsolutePath().lastIndexOf("/") + 1);
+            timelineURL = "https://people.cs.clemson.edu/~brw2/x820/gardnr/scripts/uploads/" + filename;
+            timelineURI = image.getAbsolutePath();
+        } else {
+            imagePath = image.getAbsolutePath();
+        }
         return image;
     }
 
@@ -425,12 +324,7 @@ public class PlantActivity extends AppCompatActivity {
             return true;
         }
         else {
-            if (checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                return false;
-            }
-            else {
-                return true;
-            }
+            return checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
         }
     }
 
@@ -439,12 +333,7 @@ public class PlantActivity extends AppCompatActivity {
             return true;
         }
         else {
-            if (checkSelfPermission(android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                return false;
-            }
-            else {
-                return true;
-            }
+            return checkSelfPermission(android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
         }
     }
 
@@ -452,6 +341,7 @@ public class PlantActivity extends AppCompatActivity {
         File photoFile = null;
 
         if (source == 0){
+            timelinePhoto = false;
             if (Build.VERSION.SDK_INT < 23) {
                 Intent takePictureIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
                 startActivityForResult(takePictureIntent, 1);
@@ -467,6 +357,7 @@ public class PlantActivity extends AppCompatActivity {
             }
         }
         else if (source == 1) {
+            timelinePhoto = false;
             if (Build.VERSION.SDK_INT < 23) {
                 saveCameraPhoto();
             }
@@ -475,6 +366,30 @@ public class PlantActivity extends AppCompatActivity {
                     saveCameraPhoto();
                 }
                 else {
+                    requestPermissions(new String[]{android.Manifest.permission.CAMERA}, 2);
+                }
+            }
+        } else if (source == 2) {
+            timelinePhoto = true;
+            if (Build.VERSION.SDK_INT < 23) {
+                Intent takePictureIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                startActivityForResult(takePictureIntent, 1);
+            } else {
+                if (checkStoragePermissions()) {
+                    Intent takePictureIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                    startActivityForResult(takePictureIntent, 1);
+                } else {
+                    requestPermissions(new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
+                }
+            }
+        } else if (source == 3) {
+            timelinePhoto = true;
+            if (Build.VERSION.SDK_INT < 23) {
+                saveCameraPhoto();
+            } else {
+                if (checkCameraPermissions()) {
+                    saveCameraPhoto();
+                } else {
                     requestPermissions(new String[]{android.Manifest.permission.CAMERA}, 2);
                 }
             }
@@ -492,6 +407,9 @@ public class PlantActivity extends AppCompatActivity {
         } catch (IOException e) {
             Log.d("", "Error accessing file: " + e.getMessage());
         }
+
+        new UploadFileAsync().execute();
+        new AddPhoto().execute();
     }
 
     private void saveCameraPhoto(){
@@ -521,6 +439,9 @@ public class PlantActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         }
+
+        new UploadFileAsync().execute();
+        new AddPhoto().execute();
     }
 
     @Override
@@ -560,6 +481,20 @@ public class PlantActivity extends AppCompatActivity {
             Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
             plantImage.setImageBitmap(bitmap);
         }
+    }
+
+    public void addTimelinePhoto(View v) {
+        String[] sources = {"Gallery", "Camera"};
+        AlertDialog.Builder builder = new AlertDialog.Builder(PlantActivity.this);
+
+        builder.setTitle("Choose a source")
+                .setItems(sources, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int position) {
+                        addPhoto(position + 2);
+                    }
+                });
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
     public void launchTutorial(MenuItem menu){
@@ -632,6 +567,7 @@ public class PlantActivity extends AppCompatActivity {
         );
         sequence.start();
     }
+
     public void createPlant(MenuItem menu) {
         EditText nameEditText = (EditText) findViewById(R.id.nameEditText);
         EditText locationEditText = (EditText) findViewById(R.id.locationEditText);
@@ -683,6 +619,262 @@ public class PlantActivity extends AppCompatActivity {
                 Toast.makeText(PlantActivity.this, "Error updating plant", Toast.LENGTH_LONG).show();
                 e.printStackTrace();
             }
+        }
+    }
+
+    private class GetPhotos extends AsyncTask<String, String, String> {
+        protected String doInBackground(String... args) {
+            JSONParser jParser = new JSONParser();
+            HashMap params = new HashMap<>();
+            params.put("pid", Integer.toString(plant.getPID()));
+            String URL = "https://people.cs.clemson.edu/~brw2/x820/gardnr/scripts/get_photos.php";
+            JSONObject json = jParser.makeHttpRequest(URL, "POST", params);
+
+            try {
+                int success = json.getInt("success");
+
+                if (success == 1) {
+                    JSONArray externalProfiles = json.getJSONArray("photos");
+
+                    for (int i = 0; i < externalProfiles.length(); i++) {
+                        JSONObject c = externalProfiles.getJSONObject(i);
+
+                        int id = c.getInt("id");
+                        int pid = c.getInt("pid");
+                        String image = c.getString("image");
+                        photos.add(new Plant(id, pid, image));
+                    }
+                    return "success";
+                } else {
+                    return "failure";
+                }
+            } catch (JSONException e) {
+                return "failure";
+            }
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            new CheckPictures().execute();
+        }
+    }
+
+    private class CheckPictures extends AsyncTask<Integer, Integer, String> {
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+
+            progressDialog.setMessage("" + 1 + "/" + photos.size());
+            progressDialog.setProgress(0);
+            progressDialog.setSecondaryProgress(0);
+        }
+
+        @Override
+        protected String doInBackground(Integer... args) {
+            for (int i = 0; i < photos.size(); i++) {
+                int id = photos.get(i).getID();
+                int pid = photos.get(i).getPID();
+                String imageURL = photos.get(i).getImage();
+
+                String imagePath = preferences.getString("" + pid + id, "false");
+                if (imagePath.equalsIgnoreCase("false")) {
+                    downloadImage(pid, id, imageURL);
+                } else {
+                    photos.get(i).setImage(imagePath);
+
+                    //ContentValues insertValues = new ContentValues();
+                    //insertValues.put("image", imagePath);
+
+                    //String[] argument = new String[]{Integer.toString(pid)};
+                    //db.update("plants", insertValues, "pid=?", argument);
+                }
+                publishProgress(i);
+            }
+
+            return "success";
+        }
+
+        @Override
+        protected void onProgressUpdate(Integer... values) {
+            int offset = 100 / photos.size();
+            progressDialog.setProgress((values[0] + 1) * offset);
+            progressDialog.setSecondaryProgress((values[0] + 1) * offset);
+            progressDialog.setMessage("" + (values[0] + 2) + "/" + photos.size());
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            progressDialog.dismiss();
+            setupUI();
+        }
+    }
+
+    public class ImageDownloader extends AsyncTask<String, Void, Bitmap> {
+        @Override
+        protected Bitmap doInBackground(String... urls) {
+            try {
+                URL url = new URL(urls[0]);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+                connection.connect();
+
+                InputStream inputStream = connection.getInputStream();
+
+                Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+
+                return bitmap;
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+    }
+
+    private class UploadFileAsync extends AsyncTask<String, Void, String> {
+        @Override
+        protected String doInBackground(String... params) {
+
+            try {
+                Log.i("File to upload", timelineURI);
+                String sourceFileUri = timelineURI;
+
+                HttpURLConnection conn = null;
+                DataOutputStream dos = null;
+                String lineEnd = "\r\n";
+                String twoHyphens = "--";
+                String boundary = "*****";
+                int bytesRead, bytesAvailable, bufferSize;
+                byte[] buffer;
+                int maxBufferSize = 1 * 1024 * 1024;
+                File sourceFile = new File(sourceFileUri);
+
+                if (sourceFile.isFile()) {
+
+                    try {
+                        String uploadServerUri = "https://people.cs.clemson.edu/~brw2/x820/gardnr/scripts/upload_photo.php?";
+
+                        // open a URL connection to the Servlet
+                        FileInputStream fileInputStream = new FileInputStream(
+                                sourceFile);
+                        URL url = new URL(uploadServerUri);
+
+                        // Open a HTTP connection to the URL
+                        conn = (HttpURLConnection) url.openConnection();
+                        conn.setDoInput(true); // Allow Inputs
+                        conn.setDoOutput(true); // Allow Outputs
+                        conn.setUseCaches(false); // Don't use a Cached Copy
+                        conn.setRequestMethod("POST");
+                        conn.setRequestProperty("Connection", "Keep-Alive");
+                        conn.setRequestProperty("ENCTYPE",
+                                "multipart/form-data");
+                        conn.setRequestProperty("Content-Type",
+                                "multipart/form-data;boundary=" + boundary);
+                        conn.setRequestProperty("bill", sourceFileUri);
+
+                        dos = new DataOutputStream(conn.getOutputStream());
+
+                        dos.writeBytes(twoHyphens + boundary + lineEnd);
+                        dos.writeBytes("Content-Disposition: form-data; name=\"bill\";filename=\""
+                                + sourceFileUri + "\"" + lineEnd);
+
+                        dos.writeBytes(lineEnd);
+
+                        // create a buffer of maximum size
+                        bytesAvailable = fileInputStream.available();
+
+                        bufferSize = Math.min(bytesAvailable, maxBufferSize);
+                        buffer = new byte[bufferSize];
+
+                        // read file and write it into form...
+                        bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+
+                        while (bytesRead > 0) {
+
+                            dos.write(buffer, 0, bufferSize);
+                            bytesAvailable = fileInputStream.available();
+                            bufferSize = Math
+                                    .min(bytesAvailable, maxBufferSize);
+                            bytesRead = fileInputStream.read(buffer, 0,
+                                    bufferSize);
+
+                        }
+
+                        // send multipart form data necesssary after file
+                        // data...
+                        dos.writeBytes(lineEnd);
+                        dos.writeBytes(twoHyphens + boundary + twoHyphens
+                                + lineEnd);
+
+                        // Responses from the server (code and message)
+                        int serverResponseCode = conn.getResponseCode();
+                        String serverResponseMessage = conn
+                                .getResponseMessage();
+
+                        if (serverResponseCode == 200) {
+
+                            // messageText.setText(msg);
+                            //Toast.makeText(ctx, "File Upload Complete.",
+                            //      Toast.LENGTH_SHORT).show();
+
+                            // recursiveDelete(mDirectory1);
+
+                        }
+
+                        // close the streams //
+                        fileInputStream.close();
+                        dos.flush();
+                        dos.close();
+
+                    } catch (Exception e) {
+
+                        // dialog.dismiss();
+                        e.printStackTrace();
+
+                    }
+                    // dialog.dismiss();
+
+                } // End else block
+
+
+            } catch (Exception ex) {
+                // dialog.dismiss();
+
+                ex.printStackTrace();
+            }
+            return "Executed";
+        }
+    }
+
+    private class AddPhoto extends AsyncTask<String, String, String> {
+        protected String doInBackground(String... args) {
+
+            JSONParser jParser = new JSONParser();
+            HashMap params = new HashMap<>();
+            Log.i("pid", "" + plant.getPID());
+            params.put("pid", Integer.toString(plant.getPID()));
+            Log.i("image", timelineURL);
+            params.put("image", timelineURL);
+
+            String URL = "https://people.cs.clemson.edu/~brw2/x820/gardnr/scripts/add_photo.php";
+            JSONObject json = jParser.makeHttpRequest(URL, "POST", params);
+
+            try {
+                int success = json.getInt("success");
+                if (success == 1) {
+                    return "success";
+                } else {
+                    return "failure";
+                }
+            } catch (JSONException e) {
+                return "failure";
+            }
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
         }
     }
 }

@@ -33,10 +33,13 @@ import uk.co.deanwild.materialshowcaseview.MaterialShowcaseView;
 public class LoginActivity extends AppCompatActivity {
     private SQLiteDatabase db;
     private ArrayList<User> users;
-
     private Toolbar toolbar;
-
     private NetworkChangeReceiver networkChangeReceiver;
+    private Runnable firstTutorial = new Runnable() {
+        public void run() {
+            launchTutorial(null);
+        }
+    };
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -53,7 +56,6 @@ public class LoginActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         SharedPreferences preferences = this.getSharedPreferences("com.cu.gardnr", Context.MODE_PRIVATE);
-        preferences.edit().putBoolean("firstRun", false).apply();
         if (preferences.getBoolean("firstRun", true)){
             Handler customHandler = new Handler();
             customHandler.postDelayed(firstTutorial, 1000);
@@ -104,6 +106,78 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
+    private void loadDatabase() {
+        Cursor c = db.rawQuery("SELECT * FROM users", null);
+        int uid = c.getColumnIndex("username");
+        int pid = c.getColumnIndex("password");
+
+        c.moveToFirst();
+        for (int i = 0; i < c.getCount(); i++){
+            users.add(new User(c.getString(uid), c.getString(pid)));
+            c.moveToNext();
+        }
+    }
+
+    public void login(View view){
+        EditText usernameField = (EditText) findViewById(R.id.usernameField);
+        EditText passwordField = (EditText) findViewById(R.id.passwordField);
+        String username = usernameField.getText().toString();
+        String password = passwordField.getText().toString();
+
+        for (int i = 0; i < users.size(); i++) {
+            if (users.get(i).getUsername().equals(username)) {
+                if (users.get(i).checkPassword(password)) {
+                    Toast.makeText(LoginActivity.this, "Login successful", Toast.LENGTH_SHORT).show();
+                    Intent intent = new Intent(getBaseContext(), MainActivity.class);
+                    intent.putExtra("username", username);
+                    startActivity(intent);
+                    return;
+                }
+            }
+        }
+        Toast.makeText(LoginActivity.this, "Username or password is incorrect, please try again", Toast.LENGTH_SHORT).show();
+    }
+
+    public void launchSignup(View view){
+        startActivity(new Intent(LoginActivity.this, SignupActivity.class));
+    }
+
+    public void launchTutorial(MenuItem menu){
+        MaterialShowcaseSequence sequence = new MaterialShowcaseSequence(this);
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
+                        .setTarget(findViewById(R.id.signupButton))
+                        .setDismissText("GOT IT")
+                        .setContentText("To create a profile, select the 'SIGN UP' button")
+                        .withRectangleShape()
+                        .setDelay(250)
+                        .build()
+        );
+
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
+                        .setTarget(findViewById(R.id.informationLayout))
+                        .setDismissText("GOT IT")
+                        .setContentText("If you already have a profile, you can enter your information here and select 'LOGIN'")
+                        .withRectangleShape()
+                        .setDelay(250)
+                        .build()
+        );
+        sequence.addSequenceItem(
+                new MaterialShowcaseView.Builder(this)
+                        .setMaskColour(R.color.colorPrimary)
+                        .setTarget(toolbar.getChildAt(1))
+                        .setDismissText("GOT IT")
+                        .setContentText("If you need to view a tutorial again, simply select the help icon at any time")
+                        .withRectangleShape()
+                        .setDelay(250)
+                        .build()
+        );
+        sequence.start();
+    }
+
     class GetUsers extends AsyncTask<String, String, String> {
         protected String doInBackground(String... args) {
             Log.i("Network status", "" + networkChangeReceiver.getNetworkStatus());
@@ -140,8 +214,7 @@ public class LoginActivity extends AppCompatActivity {
                 } catch (JSONException e) {
                     return "failure";
                 }
-            }
-            else {
+            } else {
                 return "failure";
             }
         }
@@ -150,90 +223,10 @@ public class LoginActivity extends AppCompatActivity {
         protected void onPostExecute(String s) {
             super.onPostExecute(s);
 
-            if (s.equalsIgnoreCase("failure")){
+            if (s.equalsIgnoreCase("failure")) {
                 Log.i("Info", "Unable to load from external DB");
                 loadDatabase();
             }
         }
-    }
-
-    private void loadDatabase() {
-        Cursor c = db.rawQuery("SELECT * FROM users", null);
-        int uid = c.getColumnIndex("username");
-        int pid = c.getColumnIndex("password");
-
-        c.moveToFirst();
-        for (int i = 0; i < c.getCount(); i++){
-            users.add(new User(c.getString(uid), c.getString(pid)));
-            c.moveToNext();
-        }
-    }
-
-    private Runnable firstTutorial = new Runnable () {
-        public void run() {
-            launchTutorial(null);
-        }
-    };
-
-    public void login(View view){
-        EditText usernameField = (EditText) findViewById(R.id.usernameField);
-        EditText passwordField = (EditText) findViewById(R.id.passwordField);
-        String username = usernameField.getText().toString();
-        String password = passwordField.getText().toString();
-
-        for (int i = 0; i < users.size(); i++) {
-            if (users.get(i).getUsername().equals(username)) {
-                if (users.get(i).checkPassword(password)) {
-                    Toast.makeText(LoginActivity.this, "Login successful", Toast.LENGTH_SHORT).show();
-                    Intent intent = new Intent(getBaseContext(), MainActivity.class);
-                    intent.putExtra("username", username);
-                    startActivity(intent);
-                    return;
-                }
-            }
-        }
-        Toast.makeText(LoginActivity.this, "Username or password is incorrect, please try again", Toast.LENGTH_SHORT).show();
-        Toast.makeText(LoginActivity.this, "Login successful", Toast.LENGTH_SHORT).show();
-        Intent intent = new Intent(getBaseContext(), MainActivity.class);
-        intent.putExtra("username", "brw2");
-        startActivity(intent);
-    }
-    public void launchSignup(View view){
-        startActivity(new Intent(LoginActivity.this, SignupActivity.class));
-    }
-    public void launchTutorial(MenuItem menu){
-        MaterialShowcaseSequence sequence = new MaterialShowcaseSequence(this);
-        sequence.addSequenceItem(
-                new MaterialShowcaseView.Builder(this)
-                        .setMaskColour(R.color.colorPrimary)
-                        .setTarget(findViewById(R.id.signupButton))
-                        .setDismissText("GOT IT")
-                        .setContentText("To create a profile, select the 'SIGN UP' button")
-                        .withRectangleShape()
-                        .setDelay(250)
-                        .build()
-        );
-
-        sequence.addSequenceItem(
-                new MaterialShowcaseView.Builder(this)
-                        .setMaskColour(R.color.colorPrimary)
-                        .setTarget(findViewById(R.id.informationLayout))
-                        .setDismissText("GOT IT")
-                        .setContentText("If you already have a profile, you can enter your information here and select 'LOGIN'")
-                        .withRectangleShape()
-                        .setDelay(250)
-                        .build()
-        );
-        sequence.addSequenceItem(
-                new MaterialShowcaseView.Builder(this)
-                        .setMaskColour(R.color.colorPrimary)
-                        .setTarget(toolbar.getChildAt(1))
-                        .setDismissText("GOT IT")
-                        .setContentText("If you need to view a tutorial again, simply select the help icon at any time")
-                        .withRectangleShape()
-                        .setDelay(250)
-                        .build()
-        );
-        sequence.start();
     }
 }

@@ -191,7 +191,9 @@
 
                         <HorizontalScrollView
                             android:layout_width="match_parent"
-                            android:layout_height="match_parent">
+                            android:layout_height="match_parent"
+                            android:layout_marginLeft="16dp"
+                            android:layout_marginRight="16dp">
 
                             <LinearLayout
                                 android:id="@+id/timelineLayout"
@@ -199,6 +201,16 @@
                                 android:layout_height="wrap_content"
                                 android:orientation="horizontal" />
                         </HorizontalScrollView>
+
+                        <Button
+                            android:id="@+id/timelineButton"
+                            style="@style/Widget.AppCompat.Button.Colored"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_horizontal"
+                            android:layout_weight="1"
+                            android:onClick="addTimelinePhoto"
+                            android:text="ADD TIMELINE PHOTO" />
 
                     </LinearLayout>
 
